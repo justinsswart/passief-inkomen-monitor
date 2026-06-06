@@ -125,12 +125,6 @@ input,select{font-family:var(--mono);touch-action:manipulation}
 /* Modal */
 .modal-overlay{position:fixed;inset:0 0 calc(var(--ad-h) + env(safe-area-inset-bottom,0px)) 0;background:rgba(0,0,0,.72);z-index:300;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
 .modal{background:var(--surf);border-radius:28px 28px 0 0;padding:28px 24px max(28px,env(safe-area-inset-bottom,28px));width:100%;max-width:430px;max-height:88vh;overflow-y:auto;animation:slideUp .28s cubic-bezier(.32,1.12,.72,1)}
-.cur-popup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);animation:fadeIn .2s ease}
-.cur-popup{background:var(--surf);border:1px solid rgba(201,168,76,.25);border-radius:24px;width:88%;max-width:360px;overflow:hidden;animation:popIn .22s cubic-bezier(.34,1.56,.64,1)}
-.cur-popup-head{background:var(--surf2);padding:20px 20px 16px;position:relative}
-.cur-popup-close{position:absolute;top:12px;right:12px;background:var(--btn-bg);border:none;color:var(--muted);width:28px;height:28px;border-radius:50%;font-size:16px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
-.cur-popup-close:hover{background:var(--hover);color:var(--txt)}
-.cur-popup-ad{background:#111;border-top:1px solid var(--brd);padding:12px;text-align:center;min-height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .modal-title{font-size:17px;font-family:var(--serif);margin-bottom:22px}
 .field{margin-bottom:15px}
@@ -453,6 +447,21 @@ function timerElapsed(tm){
 }
 function totalBal(){return netWorth();}
 function yearlyInc(){return totalYrInc();}
+function totalEarned(){
+  const now=Date.now(),msPerYear=365.25*24*3600*1000;
+  let total=0;
+  S.accounts.forEach(a=>{
+    const sd=a.startDate?new Date(a.startDate).getTime():new Date(new Date().getFullYear(),0,1).getTime();
+    const years=Math.max(0,(now-sd)/msPerYear);
+    total+=toDisp(accYrInc(a)*years,a.currency||'EUR');
+  });
+  S.assets.forEach(a=>{
+    const sd=a.startDate?new Date(a.startDate).getTime():new Date(new Date().getFullYear(),0,1).getTime();
+    const years=Math.max(0,(now-sd)/msPerYear);
+    total+=toDisp(assetYrInc(a)*years,a.currency||'EUR');
+  });
+  return total;
+}
 function ytdE(){const n=new Date(),j=new Date(n.getFullYear(),0,1);return perSec()*(n-j)/1000;}
 function fmtTime(ms){const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;if(h>0)return `${h}u ${m}m`;if(m>0)return `${m}m ${sc}s`;return `${sc}s`;}
 function fmt(n,d=2){return n.toLocaleString('nl-NL',{minimumFractionDigits:d,maximumFractionDigits:d});}
@@ -476,96 +485,10 @@ function cycleCurrency(){
 function toggleCurrencyOpen(){S.currOpen=!S.currOpen;render();}
 
 // ── CURRENCY SWITCH POPUP ──
-function showCurrencyPopup(newCode){
+function switchCurrency(newCode){
   S.displayCurrency=newCode;
   S.currOpen=false;
   persist();
-
-  const cur=CURRENCIES[newCode]||CURRENCIES.EUR;
-  const overlay=document.createElement('div');
-  overlay.className='cur-popup-overlay';
-
-  const popup=document.createElement('div');
-  popup.className='cur-popup';
-
-  // Header
-  const head=document.createElement('div');
-  head.className='cur-popup-head';
-  head.innerHTML=`
-    <div style="font-size:10px;letter-spacing:2px;color:var(--gold);margin-bottom:6px">PORTFOLIO CONVERSION</div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-      <span style="font-size:28px">${cur.flag}</span>
-      <div>
-        <div style="font-size:18px;font-family:var(--serif);color:var(--txt)">${cur.name}</div>
-        <div style="font-size:11px;color:var(--muted)">${newCode} — Live exchange rate</div>
-      </div>
-    </div>
-    <div style="background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:12px;padding:10px 14px;font-size:11px;color:rgba(240,237,232,.7);line-height:1.6">
-      ⟳ Recalculating your portfolio in <strong style="color:var(--gold)">${newCode}</strong> using live exchange rates...
-    </div>`;
-
-  // Close button
-  const closeBtn=document.createElement('button');
-  closeBtn.className='cur-popup-close';
-  closeBtn.innerHTML='✕';
-  closeBtn.onclick=(e)=>{e.stopPropagation();clearInterval(ticker);overlay.remove();render();};
-  head.appendChild(closeBtn);
-
-  // Banner ad area
-  const adArea=document.createElement('div');
-  adArea.style.cssText='background:var(--surf2);border-top:1px solid var(--brd);padding:10px;display:flex;flex-direction:column;align-items:center;gap:6px';
-
-  const adLabel=document.createElement('div');
-  adLabel.style.cssText='font-size:8px;color:rgba(240,237,232,.2);letter-spacing:2px;text-transform:uppercase';
-  adLabel.textContent='Advertisement';
-
-  const bannerSlot=document.createElement('div');
-  bannerSlot.style.cssText='width:320px;height:50px;background:#000;border-radius:4px;overflow:hidden;position:relative';
-
-  // Load dedicated popup banner (separate tracking)
-  try{
-    if(window.Capacitor?.Plugins?.AdMob){
-      const {AdMob}=window.Capacitor.Plugins;
-      AdMob.showBanner({
-        adId: AD_BANNER_POPUP,
-        adSize:'BANNER',
-        position:'BOTTOM_CENTER',
-        margin:0,
-        isTesting:false,
-      }).catch(()=>{});
-    }
-  }catch(e){}
-
-  const countdown=document.createElement('div');
-  countdown.style.cssText='font-size:9px;color:var(--muted);letter-spacing:1px';
-  let secs=5;
-  countdown.textContent=`Closes in ${secs}s  —  or tap ✕`;
-
-  adArea.appendChild(adLabel);
-  adArea.appendChild(bannerSlot);
-  adArea.appendChild(countdown);
-
-  popup.appendChild(head);
-  popup.appendChild(adArea);
-  overlay.appendChild(popup);
-  document.body.appendChild(overlay);
-
-  // Countdown tick
-  const ticker=setInterval(()=>{
-    secs--;
-    if(secs>0){
-      countdown.textContent=`Closes in ${secs}s  —  or tap ✕`;
-    } else {
-      clearInterval(ticker);
-      overlay.style.opacity='0';
-      overlay.style.transition='opacity .3s';
-      setTimeout(()=>{if(overlay.parentNode){overlay.remove();render();}},300);
-    }
-  },1000);
-
-  // Close on background tap
-  overlay.addEventListener('click',(e)=>{if(e.target===overlay){clearInterval(ticker);overlay.remove();render();}});
-
   render();
 }
 // ═══════════════════════════════════
@@ -687,10 +610,8 @@ function stopTick(){if(_tick){clearInterval(_tick);_tick=null;}}
 //  ADMOB
 // ═══════════════════════════════════
 const AD_BANNER_BOTTOM   = 'ca-app-pub-2500208892461670/2606092047';
-const AD_BANNER_POPUP    = 'ca-app-pub-2500208892461670/9876945505';
-const AD_INTERSTITIAL    = 'ca-app-pub-2500208892461670/4579340615';
+const AD_REWARDED        = 'ca-app-pub-2500208892461670/5664484707';
 
-let _interstitialShown = false; // only once per session
 
 function initAdMob(){
   try{
@@ -706,15 +627,6 @@ function initAdMob(){
         margin: 0,
         isTesting: false,
       }).catch(e=>console.warn('AdMob banner error:',e));
-
-      // ── Interstitial after 60s (once per session) ──
-      setTimeout(()=>{
-        if(_interstitialShown) return;
-        AdMob.prepareInterstitial({adId: AD_INTERSTITIAL, isTesting: false})
-          .then(()=>AdMob.showInterstitial())
-          .then(()=>{_interstitialShown=true;})
-          .catch(()=>{});
-      }, 60000);
 
     }).catch(e=>console.warn('AdMob init error:',e));
   }catch(e){console.warn('AdMob:',e);}
@@ -758,7 +670,7 @@ function buildCurrencyBtn(){
       const b=document.createElement('button');
       b.className='lang-btn'+(dcur===code?' active':'');
       b.innerHTML=`<span class="flag">${c.flag}</span><span>${code} — ${c.name}</span>`;
-      b.onclick=()=>{if(code!==S.displayCurrency){showCurrencyPopup(code);}else{S.currOpen=false;render();}};
+      b.onclick=()=>{if(code!==S.displayCurrency){switchCurrency(code);}else{S.currOpen=false;render();}};
       inner.appendChild(b);
     });
     box.appendChild(inner);
@@ -837,7 +749,7 @@ function buildApp(){
 
 // ── HEADER ──
 function buildHeader(){
-  const yi=yearlyInc(),tb=totalBal();
+  const yi=yearlyInc(),ps=perSec(),te=todayE(ps);
   const el=document.createElement('div');
   el.className='header';
   const top=document.createElement('div');
@@ -847,11 +759,11 @@ function buildHeader(){
   const rateTs=localStorage.getItem(RATE_TS_KEY);
   const rateAge=rateTs?Math.round((Date.now()-parseInt(rateTs))/60000):null;
   const rateInfo=dcur==='EUR'?'':(rateAge!==null?`<span style="font-size:8px;color:rgba(240,237,232,.25);margin-left:4px">rate ${rateAge<60?rateAge+'m':'${Math.round(rateAge/60)}h'} ago</span>`:'<span style="font-size:8px;color:rgba(240,237,232,.25);margin-left:4px">loading rates...</span>');
-  left.innerHTML=`<div class="app-label">${t('appName')}</div>
+  left.innerHTML=`<div class="app-label">SWART FINANCIËLE FOCUS</div>
     <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
-      <div class="total-bal">${fmtD(tb,'EUR',2)}</div>${rateInfo}
+      <div class="total-bal">${fmtD(te,'EUR',2)}</div>${rateInfo}
     </div>
-    <div class="header-sub" style="color:var(--gold);opacity:.7;letter-spacing:2px">SWART FINANCIËLE FOCUS</div>`;
+    <div class="header-sub" style="color:var(--muted);letter-spacing:1.5px;text-transform:uppercase">${t('todayEarned')}</div>`;
   const right=document.createElement('div');
   right.className='header-right';
   right.style.cssText='display:flex;flex-direction:row;align-items:flex-start;gap:6px;position:relative';
@@ -1103,7 +1015,7 @@ function buildAnalyticsTab(){
   const el=document.createElement('div');
   el.className='analytics';
 
-  // ── AD PAYWALL: once per day, show interstitial ad with 10s delay ──
+  // ── AD PAYWALL: once per day, watch a rewarded ad for full access ──
   const lastAd=localStorage.getItem('pi_lastAdDay');
   const today=new Date().toISOString().split('T')[0];
   if(lastAd!==today&&!S.analyticsAdWatched){
@@ -1111,36 +1023,40 @@ function buildAnalyticsTab(){
     aw.style.cssText='display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:32px 24px;text-align:center';
     aw.innerHTML=`<div style="width:72px;height:72px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:20px">📊</div>
       <div style="font-size:20px;color:var(--txt);margin-bottom:8px;font-family:var(--serif)">${t('analytics')}</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:28px;max-width:260px;line-height:1.8">Watch one ad for full day access to analytics.</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:28px;max-width:260px;line-height:1.8">Watch one short ad for full day access to analytics.</div>
       <button id="watchAdBtn" style="width:100%;max-width:280px;padding:15px;background:var(--gold);color:var(--bg);border:none;border-radius:14px;font-size:13px;font-weight:500;font-family:var(--mono);cursor:pointer">▶ Watch ad</button>
-      <div id="adCountdown" style="font-size:11px;color:var(--muted);margin-top:12px;display:none">Analytics loading in <span id="adTimer">10</span>s...</div>`;
+      <div id="adStatus" style="font-size:11px;color:var(--muted);margin-top:12px;min-height:16px"></div>`;
     el.appendChild(aw);
     setTimeout(()=>{
       const btn=document.getElementById('watchAdBtn');
-      if(btn)btn.onclick=()=>{
-        // Show interstitial ad
+      const status=document.getElementById('adStatus');
+      if(!btn) return;
+      btn.onclick=async()=>{
+        btn.disabled=true;
+        btn.textContent='Loading...';
         try{
           if(window.Capacitor?.Plugins?.AdMob){
             const A=window.Capacitor.Plugins.AdMob;
-            A.prepareInterstitial({adId:AD_INTERSTITIAL,isTesting:false}).then(()=>A.showInterstitial()).catch(()=>{});
-          }
-        }catch(e){}
-        // Start 10s countdown then unlock
-        btn.style.display='none';
-        const cdEl=document.getElementById('adCountdown');
-        const tmEl=document.getElementById('adTimer');
-        if(cdEl)cdEl.style.display='block';
-        let secs=10;
-        const iv=setInterval(()=>{
-          secs--;
-          if(tmEl)tmEl.textContent=secs;
-          if(secs<=0){
-            clearInterval(iv);
+            // Reward listener: unlock only when ad is fully completed
+            const rewardListener=await A.addListener('rewarded',()=>{
+              rewardListener.remove();
+              S.analyticsAdWatched=true;
+              localStorage.setItem('pi_lastAdDay',today);
+              render();
+            });
+            await A.prepareRewardVideoAd({adId:AD_REWARDED,isTesting:false});
+            await A.showRewardVideoAd();
+          } else {
+            // Browser fallback (no Capacitor): unlock immediately
             S.analyticsAdWatched=true;
             localStorage.setItem('pi_lastAdDay',today);
             render();
           }
-        },1000);
+        }catch(e){
+          btn.disabled=false;
+          btn.textContent='▶ Watch ad';
+          if(status) status.textContent='Ad unavailable, please try again.';
+        }
       };
     },10);
     return el;
