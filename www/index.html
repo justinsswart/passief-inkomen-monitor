@@ -142,6 +142,24 @@ input,select{font-family:var(--mono);touch-action:manipulation}
 .type-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08)}
 .err-msg{color:var(--red);font-size:12px;margin-bottom:12px}
 
+/* Tutorial */
+.tutorial-wrap{position:fixed;inset:0;background:var(--bg);z-index:500;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,28px);animation:fadeIn .3s ease}
+.tutorial-inner{flex:1;display:flex;flex-direction:column;align-items:center;padding:20px 28px max(32px,env(safe-area-inset-bottom,32px));max-width:430px;margin:0 auto;width:100%}
+.tutorial-dots{display:flex;gap:6px;margin-bottom:20px}
+.tutorial-dot{width:6px;height:6px;border-radius:3px;background:var(--brd);transition:all .3s}
+.tutorial-dot.active{width:22px;background:var(--gold)}
+.tutorial-visual{width:100%;max-width:320px;margin:0 auto;flex:1;display:flex;flex-direction:column;justify-content:center;gap:10px}
+.tutorial-txt{text-align:center;margin-top:24px}
+.tutorial-title{font-size:22px;font-family:var(--serif);color:var(--txt);margin-bottom:10px;line-height:1.2}
+.tutorial-desc{font-size:13px;color:var(--muted);line-height:1.7}
+.tutorial-nav{width:100%;display:flex;flex-direction:column;gap:10px;margin-top:28px}
+.tutorial-next{width:100%;padding:16px;background:var(--gold);color:#0c0c14;border:none;border-radius:16px;font-size:14px;font-weight:500;font-family:var(--mono);cursor:pointer}
+.tutorial-skip{width:100%;padding:10px;background:none;border:none;color:rgba(240,237,232,.25);font-size:12px;font-family:var(--mono);cursor:pointer}
+.t-card{background:var(--surf);border:1px solid var(--brd);border-radius:16px;padding:14px 16px}
+.t-mini-label{font-size:8px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
+.t-mini-val{font-size:13px;font-family:var(--serif)}
+.t-stat{flex:1;background:var(--surf2);border-radius:9px;padding:8px 10px;text-align:center}
+
 /* Empty / misc */
 .empty{text-align:center;padding:50px 20px;color:var(--muted)}
 .empty-icon{font-size:36px;margin-bottom:10px;opacity:.5}
@@ -367,6 +385,7 @@ const S={
   authLoading:false,
   settingsPage:null,
   showSettings:false,
+  tutorialStep:localStorage.getItem('pi_tutorial_done')?null:0,
 };
 if(!S.tickerSources)S.tickerSources={savings:true,realestate_rent:true,dividends:true,realestate_appr:false,stocks_appr:false,sideproject:false,ads:false,royalties:false,commodities:false,p2p:false,other:false};
 
@@ -641,9 +660,188 @@ function render(){
     app.appendChild(buildAuthScreen());
     return;
   }
+  if(S.tutorialStep!==null){
+    app.appendChild(buildTutorial());
+    return;
+  }
   app.appendChild(buildApp());
   startTick();
   if(S.modal)app.appendChild(buildModal());
+}
+
+// ── TUTORIAL ──
+function buildTutorial(){
+  const step=S.tutorialStep||0;
+  const TOTAL=6;
+  function done(){localStorage.setItem('pi_tutorial_done','1');S.tutorialStep=null;render();}
+  function next(){if(step>=TOTAL-1){done();}else{S.tutorialStep=step+1;render();}}
+
+  const slides=[
+    // 0 — Welkom
+    {title:'Welkom bij Passief Inkomen',desc:'Volg al je passieve inkomstenbronnen en zie in real-time hoeveel je elke seconde verdient.',visual:`
+      <div style="text-align:center;padding:10px 0">
+        <div style="font-size:56px;margin-bottom:16px">💰</div>
+        <div style="font-family:var(--serif);font-size:28px;color:var(--gold2);margin-bottom:6px">Passief Inkomen</div>
+        <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase">Jouw financiële dashboard</div>
+        <div style="margin-top:24px;display:flex;gap:8px;justify-content:center">
+          <div style="background:var(--surf2);border-radius:20px;padding:6px 14px;font-size:11px;color:var(--gold)">⚡ Live</div>
+          <div style="background:var(--surf2);border-radius:20px;padding:6px 14px;font-size:11px;color:var(--muted)">🏦 Rekeningen</div>
+          <div style="background:var(--surf2);border-radius:20px;padding:6px 14px;font-size:11px;color:var(--muted)">📈 Bezittingen</div>
+        </div>
+      </div>`
+    },
+    // 1 — Rekeningen
+    {title:'Voeg je rekeningen toe',desc:'Registreer je spaar- en beleggingsrekeningen met hun rente of dividendpercentage.',visual:`
+      <div class="t-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+          <div style="display:flex;gap:9px;align-items:center">
+            <div style="width:9px;height:9px;border-radius:50%;background:var(--grn);flex-shrink:0"></div>
+            <div>
+              <div style="font-size:13px;color:var(--txt)">Spaarrekening</div>
+              <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">3,5% rente</div>
+            </div>
+          </div>
+          <div style="font-size:20px;font-family:var(--serif);color:var(--txt)">€10.000</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div class="t-stat"><div class="t-mini-label">Per jaar</div><div class="t-mini-val" style="color:var(--grn)">€350</div></div>
+          <div class="t-stat"><div class="t-mini-label">Per maand</div><div class="t-mini-val" style="color:var(--grn)">€29</div></div>
+          <div class="t-stat"><div class="t-mini-label">Per dag</div><div class="t-mini-val" style="color:var(--grn)">€0,96</div></div>
+        </div>
+      </div>
+      <div class="t-card" style="opacity:.5">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;gap:9px;align-items:center">
+            <div style="width:9px;height:9px;border-radius:50%;background:var(--blu);flex-shrink:0"></div>
+            <div style="font-size:13px;color:var(--txt)">Beleggingsrekening</div>
+          </div>
+          <div style="font-size:20px;font-family:var(--serif);color:var(--txt)">€25.000</div>
+        </div>
+      </div>`
+    },
+    // 2 — Bezittingen
+    {title:'Registreer je bezittingen',desc:'Vastgoed, aandelen, crypto, royalties — alles wat passief inkomen genereert.',visual:`
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="t-card">
+          <div style="font-size:22px;margin-bottom:8px">🏠</div>
+          <div style="font-size:11px;color:var(--txt);margin-bottom:2px">Vastgoed</div>
+          <div style="font-size:9px;color:var(--muted)">Huurinkomen</div>
+          <div style="font-size:14px;font-family:var(--serif);color:var(--grn);margin-top:8px">€850/mnd</div>
+        </div>
+        <div class="t-card">
+          <div style="font-size:22px;margin-bottom:8px">📈</div>
+          <div style="font-size:11px;color:var(--txt);margin-bottom:2px">Aandelen</div>
+          <div style="font-size:9px;color:var(--muted)">Dividend</div>
+          <div style="font-size:14px;font-family:var(--serif);color:var(--grn);margin-top:8px">€120/mnd</div>
+        </div>
+        <div class="t-card" style="opacity:.55">
+          <div style="font-size:22px;margin-bottom:8px">₿</div>
+          <div style="font-size:11px;color:var(--txt);margin-bottom:2px">Crypto</div>
+          <div style="font-size:9px;color:var(--muted)">Staking</div>
+        </div>
+        <div class="t-card" style="opacity:.55">
+          <div style="font-size:22px;margin-bottom:8px">🎵</div>
+          <div style="font-size:11px;color:var(--txt);margin-bottom:2px">Royalties</div>
+          <div style="font-size:9px;color:var(--muted)">Licenties</div>
+        </div>
+      </div>`
+    },
+    // 3 — Live
+    {title:'Zie je inkomen live',desc:'Op het Live-tabblad zie je per seconde hoeveel je verdient — terwijl je niets doet.',visual:`
+      <div class="t-card" style="position:relative;overflow:hidden">
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 70% 0%,rgba(201,168,76,.07) 0%,transparent 65%);pointer-events:none"></div>
+        <div style="font-size:9px;color:var(--gold);letter-spacing:3px;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+          <div style="width:6px;height:6px;background:var(--grn);border-radius:50%;animation:blink 1.4s infinite"></div>
+          LIVE INKOMEN
+        </div>
+        <div style="font-size:36px;font-family:var(--serif);color:var(--gold2);letter-spacing:-.5px;line-height:1">€0,000347</div>
+        <div style="font-size:11px;color:var(--muted);margin:4px 0 18px">per seconde</div>
+        <div style="border-top:1px solid var(--brd);padding-top:14px;display:flex;justify-content:space-between">
+          <div>
+            <div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px">Vandaag verdiend</div>
+            <div style="font-size:20px;font-family:var(--serif);color:var(--grn)">€10,94</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px">Per jaar</div>
+            <div style="font-size:20px;font-family:var(--serif);color:var(--txt)">€10.950</div>
+          </div>
+        </div>
+      </div>`
+    },
+    // 4 — Analytics
+    {title:'Analyseer je groei',desc:'Bekijk per bron hoeveel je verdient en volg hoe je totale vermogen zich ontwikkelt.',visual:`
+      <div class="t-card">
+        <div style="font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px">Inkomen per bron</div>
+        ${[['Vastgoed','var(--grn)',72],['Dividend','var(--blu)',18],['Sparen','var(--gold)',10]].map(([l,c,p])=>`
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="font-size:11px;color:var(--muted);width:60px;flex-shrink:0">${l}</div>
+          <div style="flex:1;height:7px;background:var(--surf2);border-radius:4px;overflow:hidden">
+            <div style="width:${p}%;height:100%;background:${c};border-radius:4px"></div>
+          </div>
+          <div style="font-size:11px;color:var(--txt);width:32px;text-align:right">${p}%</div>
+        </div>`).join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="t-stat"><div class="t-mini-label">Totaal vermogen</div><div class="t-mini-val">€85.000</div></div>
+        <div class="t-stat"><div class="t-mini-label">Jaarinkomen</div><div class="t-mini-val" style="color:var(--grn)">€10.950</div></div>
+      </div>`
+    },
+    // 5 — Klaar
+    {title:'Je bent er klaar voor!',desc:'Tik op de gouden + knop om je eerste rekening of bezitting toe te voegen en begin met tellen.',visual:`
+      <div style="text-align:center;padding:10px 0">
+        <div style="width:80px;height:80px;background:rgba(78,203,141,.12);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:40px">✓</div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:28px;line-height:1.6">Voeg bronnen toe via de <strong style="color:var(--gold)">+</strong> knop rechtsonder in het scherm</div>
+        <div style="display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;background:var(--gold);border-radius:50%;font-size:28px;color:#0c0c14;box-shadow:0 4px 20px rgba(201,168,76,.4)">+</div>
+      </div>`
+    },
+  ];
+
+  const slide=slides[step];
+  const wrap=document.createElement('div');
+  wrap.className='tutorial-wrap';
+  const inner=document.createElement('div');
+  inner.className='tutorial-inner';
+
+  // Dots
+  const dots=document.createElement('div');
+  dots.className='tutorial-dots';
+  for(let i=0;i<TOTAL;i++){
+    const d=document.createElement('div');
+    d.className='tutorial-dot'+(i===step?' active':'');
+    dots.appendChild(d);
+  }
+  inner.appendChild(dots);
+
+  // Visual
+  const vis=document.createElement('div');
+  vis.className='tutorial-visual';
+  vis.innerHTML=slide.visual;
+  inner.appendChild(vis);
+
+  // Text
+  const txt=document.createElement('div');
+  txt.className='tutorial-txt';
+  txt.innerHTML=`<div class="tutorial-title">${slide.title}</div><div class="tutorial-desc">${slide.desc}</div>`;
+  inner.appendChild(txt);
+
+  // Nav
+  const nav=document.createElement('div');
+  nav.className='tutorial-nav';
+  const nextBtn=document.createElement('button');
+  nextBtn.className='tutorial-next';
+  nextBtn.textContent=step>=TOTAL-1?'Beginnen →':'Volgende →';
+  nextBtn.onclick=next;
+  nav.appendChild(nextBtn);
+  if(step<TOTAL-1){
+    const skipBtn=document.createElement('button');
+    skipBtn.className='tutorial-skip';
+    skipBtn.textContent='Overslaan';
+    skipBtn.onclick=done;
+    nav.appendChild(skipBtn);
+  }
+  inner.appendChild(nav);
+  wrap.appendChild(inner);
+  return wrap;
 }
 
 // ── CURRENCY BTN ──
