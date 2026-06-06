@@ -614,6 +614,16 @@ setInterval(()=>{
 //  TICK
 // ═══════════════════════════════════
 let _tick=null;
+let _widgetTick=0;
+function pushWidgetData(){
+  try{
+    const ps=perSec();
+    const te=todayE(ps);
+    if(window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.WidgetData){
+      Capacitor.Plugins.WidgetData.update({todayEarned:te,perSecond:ps});
+    }
+  }catch(e){}
+}
 function startTick(){
   if(_tick)return;
   _tick=setInterval(()=>{
@@ -627,6 +637,7 @@ function startTick(){
       if(ee)ee.textContent=fmtD(timerE(tm,ps),'EUR',4);
       if(el)el.textContent=(tm.paused?'⏸ ':'')+fmtTime(timerElapsed(tm));
     });
+    if(++_widgetTick>=150){_widgetTick=0;pushWidgetData();}
   },200);
 }
 function stopTick(){if(_tick){clearInterval(_tick);_tick=null;}}
@@ -2832,7 +2843,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(user){
       S.authUser=user;
       S.authScreen='app';
-      loadFromCloud().then(()=>{render();});
+      loadFromCloud().then(()=>{render();pushWidgetData();});
     } else if(localStorage.getItem('pi_skipped_auth')){
       S.authScreen='app';
       render();

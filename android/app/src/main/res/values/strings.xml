@@ -4,4 +4,5 @@
     <string name="title_activity_main">Passief Inkomen</string>
     <string name="package_name">com.swart.passiveinkomen</string>
     <string name="custom_url_scheme">com.swart.passiveinkomen</string>
+    <string name="widget_description">Toont hoeveel je vandaag verdiend hebt</string>
 </resources>
