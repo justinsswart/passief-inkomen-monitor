@@ -631,22 +631,39 @@ const AD_BANNER_BOTTOM   = 'ca-app-pub-2500208892461670/2606092047';
 const AD_REWARDED        = 'ca-app-pub-2500208892461670/5664484707';
 
 
-function initAdMob(){
+async function initAdMob(){
   try{
-    if(!window.Capacitor||!window.Capacitor.Plugins||!window.Capacitor.Plugins.AdMob) return;
+    if(!window.Capacitor?.Plugins?.AdMob) return;
     const {AdMob}=window.Capacitor.Plugins;
-    AdMob.initialize().then(()=>{
 
-      // ── Bottom banner ──
-      AdMob.showBanner({
-        adId: AD_BANNER_BOTTOM,
-        adSize: 'BANNER',
-        position: 'BOTTOM_CENTER',
-        margin: 0,
-        isTesting: false,
-      }).catch(e=>console.warn('AdMob banner error:',e));
+    // ── Stap 1: EU/GDPR consent via UMP ──
+    const consentInfo=await AdMob.requestConsentInfo({
+      tagForUnderAgeOfConsent:false,
+    }).catch(e=>{console.warn('AdMob consent info error:',e);return null;});
 
+    // Toon consent-formulier als EU-gebruiker het nog niet heeft gegeven
+    if(consentInfo?.isConsentFormAvailable &&
+       (consentInfo.status===1||consentInfo.status==='REQUIRED'||
+        consentInfo.status===0||consentInfo.status==='UNKNOWN')){
+      await AdMob.showConsentForm()
+        .catch(e=>console.warn('AdMob consent form error:',e));
+    }
+
+    // ── Stap 2: Initialiseer AdMob (SDK respecteert automatisch de consent) ──
+    await AdMob.initialize({
+      requestTrackingAuthorization:false,
+      initializeForTesting:false,
     }).catch(e=>console.warn('AdMob init error:',e));
+
+    // ── Stap 3: Bottom banner ──
+    await AdMob.showBanner({
+      adId:AD_BANNER_BOTTOM,
+      adSize:'BANNER',
+      position:'BOTTOM_CENTER',
+      margin:0,
+      isTesting:false,
+    }).catch(e=>console.warn('AdMob banner error:',e));
+
   }catch(e){console.warn('AdMob:',e);}
 }
 
