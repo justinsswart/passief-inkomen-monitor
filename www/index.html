@@ -1185,7 +1185,8 @@ function buildAccTab(){
       const yr=accYrInc(acc);
       const pct=tb>0?(toDisp(curBal,acc.currency||'EUR')/tb*100):0;
       const mutCount=(acc.mutations||[]).length;
-      const typeLabel=acc.type==='savings'?t('spaar'):acc.type==='current'?t('currentAcc'):t('beleg');
+      const typeLabel=acc.type==='savings'?t('savings'):acc.type==='current'?t('currentAcc'):t('beleg');
+      const rateLabel=acc.type==='savings'?(acc.rate||0)+'%':acc.type==='current'?'0%':pct.toFixed(1)+'%';
 
       const item=document.createElement('div');
       item.className='acc-item';
@@ -1197,7 +1198,7 @@ function buildAccTab(){
         <div class="acc-dot" style="background:${color}"></div>
         <div class="acc-row-info">
           <div class="acc-name">${acc.name}</div>
-          <div class="acc-meta">${typeLabel} · ${pct.toFixed(1)}%</div>
+          <div class="acc-meta">${typeLabel} · ${rateLabel}</div>
         </div>
         <div class="acc-bal" style="color:${color}">${fmtC(curBal,acc.currency||'EUR',2)}</div>
         <span class="acc-chevron">▼</span>
