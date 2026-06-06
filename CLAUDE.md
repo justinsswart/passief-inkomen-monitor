@@ -4,6 +4,11 @@
 Capacitor Android app als één enkel HTML-bestand: `www/index.html`.
 Firebase Auth + Firestore voor gebruikersdata.
 
+## Regelantal check (elke sessie uitvoeren)
+Tel het aantal regels in `www/index.html`. Huidig: ~2800 regels.
+Zodra het **4000+ regels** bereikt → gebruiker herinneren aan de afgesproken refactor:
+opsplitsen in `index.html` (shell) + `styles.css` + `app.js`.
+
 ## Update workflow (verplicht, altijd volgen)
 
 1. Gebruiker beschrijft de gewenste wijziging
