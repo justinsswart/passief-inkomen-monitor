@@ -81,17 +81,24 @@ input,select{font-family:var(--mono);touch-action:manipulation}
 
 /* Accounts */
 .acc-list{padding:16px}
-.acc-card{width:100%;text-align:left;background:var(--surf);border:1px solid var(--brd);border-radius:20px;padding:20px;margin-bottom:11px;display:block}
-.acc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
-.acc-id{display:flex;gap:10px;align-items:flex-start}
-.acc-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:5px}
-.acc-name{font-size:14px;color:var(--txt);margin-bottom:3px}
+.acc-item{background:var(--surf);border:1px solid var(--brd);border-radius:20px;margin-bottom:12px;overflow:hidden}
+.acc-row{display:flex;align-items:center;gap:12px;padding:16px 18px;cursor:pointer;user-select:none}
+.acc-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.acc-row-info{flex:1;min-width:0}
+.acc-name{font-size:14px;color:var(--txt);margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .acc-meta{font-size:10px;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase}
-.acc-bal{font-size:22px;font-family:var(--serif)}
-.acc-bottom{display:flex;gap:8px}
+.acc-bal{font-size:18px;font-family:var(--serif);flex-shrink:0}
+.acc-chevron{font-size:10px;color:var(--muted);flex-shrink:0;transition:transform .2s}
+.acc-chevron.open{transform:rotate(180deg)}
+.acc-expand{display:none;border-top:1px solid var(--brd)}
+.acc-expand.open{display:block}
+.acc-stats{display:flex;gap:8px;padding:14px 14px 0}
 .acc-stat{flex:1;background:var(--overlay);border-radius:11px;padding:9px 11px}
 .acc-stat-label{font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
 .acc-stat-val{font-size:13px}
+.acc-act-row{display:flex;border-top:1px solid var(--brd);margin-top:14px}
+.acc-act-row button{flex:1;padding:11px 4px;background:none;border:none;border-right:1px solid var(--brd);font-size:10px;font-family:var(--mono);display:flex;align-items:center;justify-content:center;gap:3px;cursor:pointer;line-height:1.3}
+.acc-act-row button:last-child{border-right:none}
 
 /* FAB */
 .fab{position:fixed;bottom:calc(var(--ad-h) + 70px + env(safe-area-inset-bottom,0px));right:max(calc(50vw - 215px + 16px),16px);width:52px;height:52px;background:var(--gold);border:none;border-radius:50%;color:#0c0c14;font-size:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(201,168,76,.4);z-index:50}
@@ -1178,63 +1185,79 @@ function buildAccTab(){
       const yr=accYrInc(acc);
       const pct=tb>0?(toDisp(curBal,acc.currency||'EUR')/tb*100):0;
       const mutCount=(acc.mutations||[]).length;
+      const typeLabel=acc.type==='savings'?t('spaar'):acc.type==='current'?t('currentAcc'):t('beleg');
 
-      // ── Kaart (klikbaar voor bewerken) ──
-      const card=document.createElement('button');
-      card.className='acc-card';
-      card.style.cssText='width:100%;text-align:left;background:var(--surf);border:1px solid var(--brd);border-radius:20px 20px 0 0;padding:20px;display:block;border-bottom:none;margin-bottom:0;cursor:pointer';
-      card.innerHTML=`
-        <div class="acc-top">
-          <div class="acc-id">
-            <div class="acc-dot" style="background:${color}"></div>
-            <div>
-              <div class="acc-name">${acc.name}</div>
-              <div class="acc-meta">${acc.type==='savings'?t('spaar'):acc.type==='current'?t('currentAcc'):t('beleg')} · ${pct.toFixed(1)}%</div>
-            </div>
-          </div>
-          <div class="acc-bal" style="color:${color}">${fmtC(curBal,acc.currency||'EUR',2)}</div>
+      const item=document.createElement('div');
+      item.className='acc-item';
+
+      // ── Rij (altijd zichtbaar) ──
+      const row=document.createElement('div');
+      row.className='acc-row';
+      row.innerHTML=`
+        <div class="acc-dot" style="background:${color}"></div>
+        <div class="acc-row-info">
+          <div class="acc-name">${acc.name}</div>
+          <div class="acc-meta">${typeLabel} · ${pct.toFixed(1)}%</div>
         </div>
-        <div class="acc-bottom">
-          ${acc.type==='current'?`
-            <div class="acc-stat"><div class="acc-stat-label">${t('balance')}</div><div class="acc-stat-val" style="color:${color}">${fmtC(curBal,acc.currency||'EUR',2)}</div></div>
-          `:`
-          <div class="acc-stat"><div class="acc-stat-label">${t('perYear')}</div><div class="acc-stat-val" style="color:${color}">${fmtC(yr,acc.currency||'EUR',2)}</div></div>
-          <div class="acc-stat"><div class="acc-stat-label">${t('perDay')}</div><div class="acc-stat-val" style="color:${color}">${fmtC(yr/365.25,acc.currency||'EUR',2)}</div></div>
-          <div class="acc-stat"><div class="acc-stat-label">${acc.type==='savings'?t('rate'):t('dividend').split(' ')[0]}</div><div class="acc-stat-val" style="color:${color}">${acc.type==='savings'?acc.rate+'%':fmtC(curDiv,acc.currency||'EUR',2)}</div></div>
-          `}
-        </div>
+        <div class="acc-bal" style="color:${color}">${fmtC(curBal,acc.currency||'EUR',2)}</div>
+        <span class="acc-chevron">▼</span>
       `;
-      card.onclick=()=>{S.editAcc=acc;S.modal='editAccount';S.form={...acc};render();};
 
-      // ── Knoppen rij ──
-      const btnRow=document.createElement('div');
-      btnRow.style.cssText='display:flex;gap:0;border:1px solid var(--brd);border-top:none;border-radius:0 0 20px 20px;overflow:hidden;margin-bottom:0';
+      // ── Uitklapgedeelte ──
+      const expand=document.createElement('div');
+      expand.className='acc-expand';
+
+      const statsHtml=acc.type==='current'?`
+        <div class="acc-stat"><div class="acc-stat-label">${t('balance')}</div><div class="acc-stat-val" style="color:${color}">${fmtC(curBal,acc.currency||'EUR',2)}</div></div>
+      `:`
+        <div class="acc-stat"><div class="acc-stat-label">${t('perYear')}</div><div class="acc-stat-val" style="color:${color}">${fmtC(yr,acc.currency||'EUR',2)}</div></div>
+        <div class="acc-stat"><div class="acc-stat-label">${t('perDay')}</div><div class="acc-stat-val" style="color:${color}">${fmtC(yr/365.25,acc.currency||'EUR',2)}</div></div>
+        <div class="acc-stat"><div class="acc-stat-label">${acc.type==='savings'?t('rate'):t('dividend').split(' ')[0]}</div><div class="acc-stat-val" style="color:${color}">${acc.type==='savings'?acc.rate+'%':fmtC(curDiv,acc.currency||'EUR',2)}</div></div>
+      `;
+      expand.innerHTML=`<div class="acc-stats">${statsHtml}</div>`;
+
+      // ── Actieknoppen ──
+      const actRow=document.createElement('div');
+      actRow.className='acc-act-row';
 
       const mutBtn=document.createElement('button');
-      mutBtn.style.cssText=`flex:1;padding:10px 8px;background:var(--overlay);border:none;border-right:1px solid var(--brd);color:${color};font-size:11px;font-family:var(--mono);display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer`;
-      mutBtn.innerHTML=`<span style="font-size:13px;line-height:1">+</span> ${t('mutations')}${mutCount>0?' ('+mutCount+')':''}`;
-      mutBtn.onclick=()=>{S.editAcc=acc;S.modal='viewMutations';S.form={};render();};
+      mutBtn.style.cssText=`color:${color}`;
+      mutBtn.innerHTML=`<span>+</span>${t('mutations')}${mutCount>0?' ('+mutCount+')':''}`;
+      mutBtn.onclick=(e)=>{e.stopPropagation();S.editAcc=acc;S.modal='viewMutations';S.form={};render();};
 
       const adjBtn=document.createElement('button');
-      adjBtn.style.cssText=`flex:1;padding:10px 8px;background:var(--overlay);border:none;border-right:1px solid var(--brd);color:var(--gold);font-size:11px;font-family:var(--mono);display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer`;
-      adjBtn.innerHTML=`<span style="font-size:12px">✎</span> ${t('adjustValues')||'Adjust'}`;
-      adjBtn.onclick=()=>{S.editAcc=acc;S.modal='adjustValues';S.form={adjDate:new Date().toISOString().split('T')[0],adjBal:'',adjDiv:''};render();};
+      adjBtn.style.cssText='color:var(--gold)';
+      adjBtn.innerHTML=`<span>✎</span>${t('adjustValues')||'Aanpassen'}`;
+      adjBtn.onclick=(e)=>{e.stopPropagation();S.editAcc=acc;S.modal='adjustValues';S.form={adjDate:new Date().toISOString().split('T')[0],adjBal:'',adjDiv:''};render();};
 
       const trBtn=document.createElement('button');
-      trBtn.style.cssText=`flex:1;padding:10px 8px;background:var(--overlay);border:none;color:var(--muted);font-size:11px;font-family:var(--mono);display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer`;
-      trBtn.innerHTML=`<span style="font-size:12px">↔</span> ${t('transfer')}`;
-      trBtn.onclick=()=>{S.editAcc=acc;S.modal='transfer';S.form={};render();};
+      trBtn.style.cssText='color:var(--muted)';
+      trBtn.innerHTML=`<span>↔</span>${t('transfer')}`;
+      trBtn.onclick=(e)=>{e.stopPropagation();S.editAcc=acc;S.modal='transfer';S.form={};render();};
 
-      btnRow.appendChild(mutBtn);
-      btnRow.appendChild(adjBtn);
-      btnRow.appendChild(trBtn);
+      const editBtn=document.createElement('button');
+      editBtn.style.cssText='color:var(--muted)';
+      editBtn.innerHTML=`<span>⚙</span>${t('editAccount')}`;
+      editBtn.onclick=(e)=>{e.stopPropagation();S.editAcc=acc;S.modal='editAccount';S.form={...acc};render();};
 
-      // ── Wrapper ──
-      const wrap=document.createElement('div');
-      wrap.style.cssText='margin-bottom:14px';
-      wrap.appendChild(card);
-      wrap.appendChild(btnRow);
-      list.appendChild(wrap);
+      actRow.appendChild(mutBtn);
+      actRow.appendChild(adjBtn);
+      actRow.appendChild(trBtn);
+      actRow.appendChild(editBtn);
+      expand.appendChild(actRow);
+
+      // ── Toggle ──
+      row.onclick=()=>{
+        const chevron=row.querySelector('.acc-chevron');
+        const isOpen=expand.classList.contains('open');
+        list.querySelectorAll('.acc-expand.open').forEach(e=>e.classList.remove('open'));
+        list.querySelectorAll('.acc-chevron.open').forEach(c=>c.classList.remove('open'));
+        if(!isOpen){expand.classList.add('open');chevron.classList.add('open');}
+      };
+
+      item.appendChild(row);
+      item.appendChild(expand);
+      list.appendChild(item);
     });
     const pw=document.createElement('div');pw.className='powered';pw.textContent=t('powered');
     list.appendChild(pw);
@@ -2360,23 +2383,71 @@ function buildAssetsTab(){
       const cat=ASSET_CATS[a.category]||ASSET_CATS.other;
       const color=a.color||cat.dc;
       const val=assetVal(a),yr=assetYrInc(a);
-      const card=document.createElement('button');card.className='acc-card';
-      card.style.cssText='border-radius:20px 20px 0 0;border-bottom:none;margin-bottom:0;cursor:pointer;width:100%;text-align:left;display:block';
-      card.innerHTML=`<div class="acc-top"><div class="acc-id"><div class="acc-dot" style="background:${color}"></div><div><div class="acc-name">${a.name}</div><div class="acc-meta">${cat.icon} ${t(a.category)}${a.category==='stocks'&&a.positions?' · '+(a.positions||[]).length+' '+t('positions'):''}</div></div></div><div class="acc-bal" style="color:${color}">${fmtC(val,a.currency||'EUR',2)}</div></div><div class="acc-bottom"><div class="acc-stat"><div class="acc-stat-label">${t('perYear')}</div><div class="acc-stat-val" style="color:${color}">${fmtC(yr,a.currency||'EUR',2)}</div></div><div class="acc-stat"><div class="acc-stat-label">${t('perDay')}</div><div class="acc-stat-val" style="color:${color}">${fmtC(yr/365.25,a.currency||'EUR',4)}</div></div><div class="acc-stat"><div class="acc-stat-label">${a.incomeMode==='%'?t('returnPct'):t('annualIncome')}</div><div class="acc-stat-val" style="color:${color}">${a.incomeMode==='%'?(a.annualReturn||0)+'%':fmtC(yr,a.currency||'EUR',2)}</div></div></div>`;
-      card.onclick=()=>{S.editAsset=a;S.modal='editAsset';S.form={...a};render();};
-      const btnRow=document.createElement('div');
-      btnRow.style.cssText='display:flex;gap:0;border:1px solid var(--brd);border-top:none;border-radius:0 0 20px 20px;overflow:hidden;margin-bottom:14px';
+      const metaLabel=`${cat.icon} ${t(a.category)}${a.category==='stocks'&&a.positions?' · '+(a.positions||[]).length+' '+t('positions'):''}`;
+
+      const item=document.createElement('div');
+      item.className='acc-item';
+
+      // ── Rij (altijd zichtbaar) ──
+      const row=document.createElement('div');
+      row.className='acc-row';
+      row.innerHTML=`
+        <div class="acc-dot" style="background:${color}"></div>
+        <div class="acc-row-info">
+          <div class="acc-name">${a.name}</div>
+          <div class="acc-meta">${metaLabel}</div>
+        </div>
+        <div class="acc-bal" style="color:${color}">${fmtC(val,a.currency||'EUR',2)}</div>
+        <span class="acc-chevron">▼</span>
+      `;
+
+      // ── Uitklapgedeelte ──
+      const expand=document.createElement('div');
+      expand.className='acc-expand';
+      expand.innerHTML=`<div class="acc-stats">
+        <div class="acc-stat"><div class="acc-stat-label">${t('perYear')}</div><div class="acc-stat-val" style="color:${color}">${fmtC(yr,a.currency||'EUR',2)}</div></div>
+        <div class="acc-stat"><div class="acc-stat-label">${t('perDay')}</div><div class="acc-stat-val" style="color:${color}">${fmtC(yr/365.25,a.currency||'EUR',4)}</div></div>
+        <div class="acc-stat"><div class="acc-stat-label">${a.incomeMode==='%'?t('returnPct'):t('annualIncome')}</div><div class="acc-stat-val" style="color:${color}">${a.incomeMode==='%'?(a.annualReturn||0)+'%':fmtC(yr,a.currency||'EUR',2)}</div></div>
+      </div>`;
+
+      // ── Actieknoppen ──
+      const actRow=document.createElement('div');
+      actRow.className='acc-act-row';
+
       if(a.category==='stocks'){
         const pfBtn=document.createElement('button');
-        pfBtn.style.cssText=`flex:1;padding:10px 8px;background:var(--overlay);border:none;border-right:1px solid var(--brd);color:${color};font-size:11px;font-family:var(--mono);display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer`;
-        pfBtn.innerHTML=`📊 ${t('portfolio')}`;pfBtn.onclick=()=>{S.viewPortfolio=a;render();};
-        btnRow.appendChild(pfBtn);
+        pfBtn.style.cssText=`color:${color}`;
+        pfBtn.innerHTML=`<span>📊</span>${t('portfolio')}`;
+        pfBtn.onclick=(e)=>{e.stopPropagation();S.viewPortfolio=a;render();};
+        actRow.appendChild(pfBtn);
       }
+
       const mutBtn=document.createElement('button');
-      mutBtn.style.cssText=`flex:1;padding:10px 8px;background:var(--overlay);border:none;color:${color};font-size:11px;font-family:var(--mono);display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer`;
-      mutBtn.innerHTML=`+ ${t('mutations')}`;mutBtn.onclick=()=>{S.editAcc=a;S.modal='viewAssetMutations';S.form={};render();};
-      btnRow.appendChild(mutBtn);
-      const wrap=document.createElement('div');wrap.appendChild(card);wrap.appendChild(btnRow);list.appendChild(wrap);
+      mutBtn.style.cssText=`color:${color}`;
+      mutBtn.innerHTML=`<span>+</span>${t('mutations')}`;
+      mutBtn.onclick=(e)=>{e.stopPropagation();S.editAcc=a;S.modal='viewAssetMutations';S.form={};render();};
+      actRow.appendChild(mutBtn);
+
+      const editBtn=document.createElement('button');
+      editBtn.style.cssText='color:var(--muted)';
+      editBtn.innerHTML=`<span>⚙</span>${t('editAsset')}`;
+      editBtn.onclick=(e)=>{e.stopPropagation();S.editAsset=a;S.modal='editAsset';S.form={...a};render();};
+      actRow.appendChild(editBtn);
+
+      expand.appendChild(actRow);
+
+      // ── Toggle ──
+      row.onclick=()=>{
+        const chevron=row.querySelector('.acc-chevron');
+        const isOpen=expand.classList.contains('open');
+        list.querySelectorAll('.acc-expand.open').forEach(e=>e.classList.remove('open'));
+        list.querySelectorAll('.acc-chevron.open').forEach(c=>c.classList.remove('open'));
+        if(!isOpen){expand.classList.add('open');chevron.classList.add('open');}
+      };
+
+      item.appendChild(row);
+      item.appendChild(expand);
+      list.appendChild(item);
     });
     const pw=document.createElement('div');pw.className='powered';pw.textContent=t('powered');list.appendChild(pw);el.appendChild(list);
   }
