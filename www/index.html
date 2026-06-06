@@ -52,7 +52,8 @@ input,select{font-family:var(--mono);touch-action:manipulation}
 .tab-icon{font-size:19px;line-height:1}
 
 /* Screen */
-.screen{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:20px}
+.screen{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:20px;scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
 
 /* Live */
 .live-card{margin:18px 16px 0;background:var(--surf);border:1px solid var(--brd);border-radius:24px;padding:24px;position:relative;overflow:hidden}
@@ -105,7 +106,7 @@ input,select{font-family:var(--mono);touch-action:manipulation}
 .bar-fill{height:100%;border-radius:4px}
 .bar-val{font-size:11px;width:64px;text-align:right;flex-shrink:0}
 .stats-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.stat-block{background:var(--surf2);border-radius:14px;padding:16px}
+.stat-block{background:var(--surf2);border-radius:14px;padding:16px;text-align:center}
 .stat-block-label{font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px}
 .stat-block-val{font-size:20px;font-family:var(--serif)}
 .donut-wrap{display:flex;align-items:center;gap:20px;margin-bottom:4px}
@@ -653,7 +654,7 @@ function buildCurrencyBtn(){
   wrap.style.position='relative';
   const btn=document.createElement('button');
   btn.className='lang-pill';
-  btn.innerHTML=`<span style="font-size:16px">${cur.flag}</span> <span style="font-size:9px;opacity:.6">▾</span>`;
+  btn.innerHTML=`<span style="font-size:13px">${cur.symbol}</span> <span style="font-size:9px;opacity:.6">▾</span>`;
   btn.onclick=()=>{S.currOpen=!S.currOpen;S.langOpen=false;render();};
   wrap.appendChild(btn);
   if(S.currOpen){
@@ -806,53 +807,61 @@ function buildTabBar(){
 function buildLiveTab(){
   const ps=perSec(),td=todayE(ps),yi=yearlyInc();
   const el=document.createElement('div');
+
+  // ── Compacte live card: alleen rate + vandaag ──
   const card=document.createElement('div');
   card.className='live-card';
   card.innerHTML=`
     <div class="live-badge"><span class="live-dot"></span>${t('liveLabel')}</div>
     <div class="live-rate-num" id="liveRate">${fmtD(ps,'EUR',6)}</div>
     <div class="live-rate-unit">${t('perSecond')}</div>
-    <div style="margin-top:18px;border-top:1px solid var(--brd);padding-top:16px">
-      <div class="section-hd" style="margin-bottom:12px">${t('totalIncome')}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div class="stat-block">
-          <div class="stat-block-label">${t('perHour')}</div>
-          <div class="stat-block-val" style="font-size:15px">${fmtD(yi/365.25/24,'EUR',4)}</div>
-        </div>
-        <div class="stat-block">
-          <div class="stat-block-label">${t('perDay')}</div>
-          <div class="stat-block-val" style="font-size:15px">${fmtD(yi/365.25,'EUR',2)}</div>
-        </div>
-        <div class="stat-block">
-          <div class="stat-block-label">${t('perWeek')}</div>
-          <div class="stat-block-val" style="font-size:15px">${fmtD(yi/52.18,'EUR',2)}</div>
-        </div>
-        <div class="stat-block">
-          <div class="stat-block-label">${t('perMonth')}</div>
-          <div class="stat-block-val" style="font-size:15px">${fmtD(yi/12,'EUR',2)}</div>
-        </div>
+    <div class="live-today-row">
+      <div>
+        <div class="live-today-label">${t('todayEarned')}</div>
+        <div class="live-today-val">${fmtD(td,'EUR',4)}</div>
       </div>
-      <div class="stat-block" style="margin-top:8px">
-        <div class="stat-block-label">${t('perYear')}</div>
-        <div class="stat-block-val" style="font-size:18px">${fmtD(yi,'EUR',2)}</div>
-      </div>
+      <button style="background:none;border:none;font-size:10px;color:var(--muted);opacity:.6;cursor:pointer;letter-spacing:.5px;padding:4px 0" onclick="S.modal='tickerSources';render()">⚙ ${t('tickerSources')}</button>
     </div>
   `;
+  el.appendChild(card);
+
+  // ── Inkomen breakdown sectie ──
+  const statsSection=document.createElement('div');
+  statsSection.style.cssText='padding:20px 16px 4px';
+  statsSection.innerHTML=`
+    <div class="section-hd" style="margin-bottom:12px">${t('totalIncome')}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div class="stat-block">
+        <div class="stat-block-label">${t('perHour')}</div>
+        <div class="stat-block-val" style="font-size:15px">${fmtD(yi/365.25/24,'EUR',4)}</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-block-label">${t('perDay')}</div>
+        <div class="stat-block-val" style="font-size:15px">${fmtD(yi/365.25,'EUR',2)}</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-block-label">${t('perWeek')}</div>
+        <div class="stat-block-val" style="font-size:15px">${fmtD(yi/52.18,'EUR',2)}</div>
+      </div>
+      <div class="stat-block">
+        <div class="stat-block-label">${t('perMonth')}</div>
+        <div class="stat-block-val" style="font-size:15px">${fmtD(yi/12,'EUR',2)}</div>
+      </div>
+    </div>
+    <div class="stat-block">
+      <div class="stat-block-label">${t('perYear')}</div>
+      <div class="stat-block-val" style="font-size:18px">${fmtD(yi,'EUR',2)}</div>
+    </div>
+  `;
+  el.appendChild(statsSection);
+
+  // ── Timer expand knop (buiten card) ──
   const expBtn=document.createElement('button');
   expBtn.className='expand-btn';
+  expBtn.style.cssText='margin:12px 16px 0;width:calc(100% - 32px)';
   expBtn.innerHTML=`<span>${S.liveExp?'▲':'▼'}</span> ${S.liveExp?t('hideTimers'):t('tapTimers')}`;
   expBtn.onclick=()=>{S.liveExp=!S.liveExp;render();};
-  card.appendChild(expBtn);
-
-  // Ticker sources button
-  const srcBtn=document.createElement('button');
-  srcBtn.className='expand-btn';
-  srcBtn.style.cssText='margin-top:8px;font-size:10px;opacity:.7';
-  srcBtn.innerHTML=`⚙ ${t('tickerSources')}`;
-  srcBtn.onclick=()=>{S.modal='tickerSources';render();};
-  card.appendChild(srcBtn);
-
-  el.appendChild(card);
+  el.appendChild(expBtn);
 
   if(S.liveExp){
     const tw=document.createElement('div');
@@ -1682,7 +1691,13 @@ function buildModal(){
   // Geen backdrop-klik om te sluiten — voorkomt sluiten bij toetsenbord wegklikken
   const m=document.createElement('div');
   m.className='modal';
+  m.style.position='relative';
   m.onclick=e=>e.stopPropagation();
+  const closeX=document.createElement('button');
+  closeX.style.cssText='position:absolute;top:18px;right:20px;background:none;border:none;color:var(--muted);font-size:26px;line-height:1;cursor:pointer;z-index:1;padding:0 4px;opacity:.7';
+  closeX.textContent='×';
+  closeX.onclick=()=>{S.modal=null;render();};
+  m.appendChild(closeX);
   if(S.modal==='addAccount'||S.modal==='editAccount')m.appendChild(buildAccForm());
   else if(S.modal==='addTimer'||S.modal==='editTimer')m.appendChild(buildTimerForm());
   else if(S.modal==='addMutation'||S.modal==='viewMutations')m.appendChild(buildMutationModal());
