@@ -1046,24 +1046,24 @@ function buildLiveTab(){
   statsSection.innerHTML=`
     <div class="section-hd" style="margin-bottom:12px">${t('totalIncome')}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-      <div class="stat-block">
+      <div class="stat-block" style="cursor:pointer" onclick="S.tab='analytics';S.analyticsView='income';S.analyticsSubData='perUur';render()">
         <div class="stat-block-label">${t('perHour')}</div>
         <div class="stat-block-val" style="font-size:15px">${fmtD(yi/365.25/24,'EUR',4)}</div>
       </div>
-      <div class="stat-block">
+      <div class="stat-block" style="cursor:pointer" onclick="S.tab='analytics';S.analyticsView='income';S.analyticsSubData='perDag';render()">
         <div class="stat-block-label">${t('perDay')}</div>
         <div class="stat-block-val" style="font-size:15px">${fmtD(yi/365.25,'EUR',2)}</div>
       </div>
-      <div class="stat-block">
+      <div class="stat-block" style="cursor:pointer" onclick="S.tab='analytics';S.analyticsView='income';S.analyticsSubData='perWeek';render()">
         <div class="stat-block-label">${t('perWeek')}</div>
         <div class="stat-block-val" style="font-size:15px">${fmtD(yi/52.18,'EUR',2)}</div>
       </div>
-      <div class="stat-block">
+      <div class="stat-block" style="cursor:pointer" onclick="S.tab='analytics';S.analyticsView='income';S.analyticsSubData='perMaand';render()">
         <div class="stat-block-label">${t('perMonth')}</div>
         <div class="stat-block-val" style="font-size:15px">${fmtD(yi/12,'EUR',2)}</div>
       </div>
     </div>
-    <div class="stat-block">
+    <div class="stat-block" style="cursor:pointer" onclick="S.tab='analytics';S.analyticsView='income';S.analyticsSubData='perJaar';render()">
       <div class="stat-block-label">${t('perYear')}</div>
       <div class="stat-block-val" style="font-size:18px">${fmtD(yi,'EUR',2)}</div>
     </div>
