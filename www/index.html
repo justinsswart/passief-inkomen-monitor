@@ -593,9 +593,7 @@ function startTick(){
     S.now=Date.now();
     const ps=perSec();
     const re=document.getElementById('liveRate');
-    const te=document.getElementById('liveToday');
     if(re)re.textContent=fmtD(ps,'EUR',6);
-    if(te)te.textContent=fmtD(todayE(ps),'EUR',4);
     S.timers.forEach(tm=>{
       const ee=document.getElementById('te_'+tm.id);
       const el=document.getElementById('tl_'+tm.id);
@@ -761,7 +759,7 @@ function buildHeader(){
   const rateInfo=dcur==='EUR'?'':(rateAge!==null?`<span style="font-size:8px;color:rgba(240,237,232,.25);margin-left:4px">rate ${rateAge<60?rateAge+'m':'${Math.round(rateAge/60)}h'} ago</span>`:'<span style="font-size:8px;color:rgba(240,237,232,.25);margin-left:4px">loading rates...</span>');
   left.innerHTML=`<div class="app-label">SWART FINANCIËLE FOCUS</div>
     <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
-      <div class="total-bal">${fmtD(te,'EUR',2)}</div>${rateInfo}
+      <div class="total-bal" style="color:var(--grn)">${fmtD(te,'EUR',4)}</div>${rateInfo}
     </div>
     <div class="header-sub" style="color:var(--muted);letter-spacing:1.5px;text-transform:uppercase">${t('todayEarned')}</div>`;
   const right=document.createElement('div');
@@ -775,24 +773,6 @@ function buildHeader(){
   top.appendChild(left);
   top.appendChild(right);
   el.appendChild(top);
-  const chips=document.createElement('div');
-  chips.className='chips';
-  const chipDefs=[
-    {key:'perUur',   label:t('perHour'), val:fmtD(yi/365.25/24,'EUR',4)},
-    {key:'perDag',   label:t('perDay'),  val:fmtD(yi/365.25,'EUR',2)},
-    {key:'perWeek',  label:t('perWeek'), val:fmtD(yi/52.18,'EUR',2)},
-    {key:'perMaand', label:t('perMonth'),val:fmtD(yi/12,'EUR',2)},
-    {key:'perJaar',  label:t('perYear'), val:fmtD(yi,'EUR',2)},
-  ];
-  chipDefs.forEach(cd=>{
-    const btn=document.createElement('button');
-    btn.className='chip';
-    btn.style.cssText='border:none;text-align:left;background:var(--hover);';
-    btn.innerHTML=`<div class="chip-label">${cd.label}</div><div class="chip-val">${cd.val}</div>`;
-    btn.onclick=()=>{S.tab='analytics';S.analyticsChip=cd.key;render();};
-    chips.appendChild(btn);
-  });
-  el.appendChild(chips);
   return el;
 }
 
@@ -812,7 +792,7 @@ function buildTabBar(){
 
 // ── LIVE TAB ──
 function buildLiveTab(){
-  const ps=perSec(),td=todayE(ps);
+  const ps=perSec(),td=todayE(ps),yi=yearlyInc();
   const el=document.createElement('div');
   const card=document.createElement('div');
   card.className='live-card';
@@ -820,8 +800,30 @@ function buildLiveTab(){
     <div class="live-badge"><span class="live-dot"></span>${t('liveLabel')}</div>
     <div class="live-rate-num" id="liveRate">${fmtD(ps,'EUR',6)}</div>
     <div class="live-rate-unit">${t('perSecond')}</div>
-    <div class="live-today-row">
-      <div><div class="live-today-label">${t('todayEarned')}</div><div class="live-today-val" id="liveToday">${fmtD(td,'EUR',4)}</div></div>
+    <div style="margin-top:18px;border-top:1px solid var(--brd);padding-top:16px">
+      <div class="section-hd" style="margin-bottom:12px">${t('totalIncome')}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="stat-block">
+          <div class="stat-block-label">${t('perHour')}</div>
+          <div class="stat-block-val" style="font-size:15px">${fmtD(yi/365.25/24,'EUR',4)}</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-block-label">${t('perDay')}</div>
+          <div class="stat-block-val" style="font-size:15px">${fmtD(yi/365.25,'EUR',2)}</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-block-label">${t('perWeek')}</div>
+          <div class="stat-block-val" style="font-size:15px">${fmtD(yi/52.18,'EUR',2)}</div>
+        </div>
+        <div class="stat-block">
+          <div class="stat-block-label">${t('perMonth')}</div>
+          <div class="stat-block-val" style="font-size:15px">${fmtD(yi/12,'EUR',2)}</div>
+        </div>
+      </div>
+      <div class="stat-block" style="margin-top:8px">
+        <div class="stat-block-label">${t('perYear')}</div>
+        <div class="stat-block-val" style="font-size:18px">${fmtD(yi,'EUR',2)}</div>
+      </div>
     </div>
   `;
   const expBtn=document.createElement('button');
