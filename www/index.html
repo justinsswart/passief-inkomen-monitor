@@ -1,0 +1,2617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Passief Inkomen</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+:root{
+  --bg:#0d0d14;--surf:#13131e;--surf2:#1a1a2a;--brd:rgba(255,255,255,.07);
+  --gold:#c9a84c;--gold2:#e8c97a;--txt:#f0ede8;--muted:rgba(240,237,232,.45);
+  --grn:#4ecb8d;--blu:#5b9cf6;--red:#ff6b6b;
+  --mono:'DM Mono',monospace;--serif:'Playfair Display',serif;
+  --ad-h:50px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:var(--mono);-webkit-font-smoothing:antialiased;overflow:hidden}
+button{font-family:var(--mono);touch-action:manipulation;cursor:pointer;-webkit-tap-highlight-color:transparent}
+input,select{font-family:var(--mono);touch-action:manipulation}
+
+#app{max-width:430px;margin:0 auto;height:100%;display:flex;flex-direction:column;position:relative;padding-top:env(safe-area-inset-top,28px)}
+
+/* Lang */
+.lang-pill{background:var(--hover);border:1px solid var(--brd);color:var(--muted);border-radius:20px;padding:5px 11px;font-size:10px;display:flex;align-items:center;gap:5px;white-space:nowrap;flex-shrink:0;border:1px solid var(--brd)}
+.lang-slide-wrap{position:absolute;top:52px;right:16px;z-index:200;transform-origin:top right;animation:popIn .18s cubic-bezier(.34,1.56,.64,1)}
+@keyframes popIn{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+.lang-menu-box{background:var(--surf2);border:1px solid var(--brd);border-radius:16px;padding:8px;display:flex;flex-direction:column;gap:3px;min-width:160px;max-height:260px;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;box-shadow:0 16px 40px rgba(0,0,0,.5)}
+.lang-btn{width:100%;padding:8px 12px;border-radius:10px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:9px;background:none;border:none;text-align:left}
+.lang-btn.active{background:rgba(201,168,76,.12);color:var(--gold)}
+.lang-btn .flag{font-size:16px}
+
+/* Header */
+.header{padding:20px 20px 16px;border-bottom:1px solid var(--brd);background:var(--surf);flex-shrink:0;position:relative}
+.header-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.app-label{font-size:9px;color:var(--gold);letter-spacing:3.5px;text-transform:uppercase;margin-bottom:8px}
+.total-bal{font-size:34px;font-family:var(--serif);letter-spacing:-.5px;line-height:1}
+.header-sub{font-size:10px;color:var(--muted);margin-top:5px}
+.header-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;position:relative}
+.chips{display:flex;gap:7px;margin-top:14px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{background:var(--hover);border:1px solid var(--brd);border-radius:20px;padding:7px 14px;white-space:nowrap;flex-shrink:0}
+.chip-label{font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
+.chip-val{font-size:13px;color:var(--txt)}
+
+/* Tabbar */
+.tabbar{display:flex;background:var(--surf);border-top:1px solid var(--brd);padding-bottom:calc(env(safe-area-inset-bottom,0px) + var(--ad-h) + 8px);flex-shrink:0}
+.tab{flex:1;padding:12px 4px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--muted);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;border:none;background:none;transition:color .2s}
+.tab.active{color:var(--gold)}
+.tab-icon{font-size:19px;line-height:1}
+
+/* Screen */
+.screen{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:20px}
+
+/* Live */
+.live-card{margin:18px 16px 0;background:var(--surf);border:1px solid var(--brd);border-radius:24px;padding:24px;position:relative;overflow:hidden}
+.live-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 70% 0%,rgba(201,168,76,.05) 0%,transparent 65%);pointer-events:none}
+.live-badge{font-size:9px;color:var(--gold);letter-spacing:3px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.live-dot{width:6px;height:6px;background:var(--grn);border-radius:50%;flex-shrink:0;animation:blink 1.4s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.live-rate-num{font-size:40px;font-family:var(--serif);color:var(--gold2);letter-spacing:-.5px;line-height:1;margin-bottom:4px}
+.live-rate-unit{font-size:11px;color:var(--muted);margin-bottom:20px}
+.live-today-row{display:flex;justify-content:space-between;align-items:center;padding-top:18px;border-top:1px solid var(--brd)}
+.live-today-label{font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
+.live-today-val{font-size:20px;color:var(--grn);font-family:var(--serif)}
+.expand-btn{width:100%;margin-top:16px;padding:12px;background:var(--btn-bg);border:1px solid var(--brd);border-radius:14px;color:var(--muted);font-size:11px;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:1px}
+
+/* Timers */
+.timers-wrap{padding:16px 16px 0;animation:fadeIn .2s ease}
+.section-hd{font-size:9px;color:var(--muted);letter-spacing:2.5px;text-transform:uppercase;margin-bottom:12px}
+.timer-card{background:var(--surf);border:1px solid var(--brd);border-radius:16px;padding:15px 16px;margin-bottom:9px;display:flex;justify-content:space-between;align-items:center}
+.timer-name{font-size:13px;color:var(--txt);margin-bottom:3px}
+.timer-elapsed{font-size:11px;color:var(--muted)}
+.timer-right{text-align:right}
+.timer-earned{font-size:16px;color:var(--grn);font-family:var(--serif)}
+.timer-del{background:none;border:none;color:var(--red);font-size:22px;line-height:1;padding:4px 8px;opacity:.7}.timer-del:hover{opacity:1}
+.add-timer-btn{width:100%;padding:13px;background:var(--overlay);border:1px dashed var(--brd);border-radius:16px;color:var(--muted);font-size:12px}
+
+/* Accounts */
+.acc-list{padding:16px}
+.acc-card{width:100%;text-align:left;background:var(--surf);border:1px solid var(--brd);border-radius:20px;padding:20px;margin-bottom:11px;display:block}
+.acc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.acc-id{display:flex;gap:10px;align-items:flex-start}
+.acc-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.acc-name{font-size:14px;color:var(--txt);margin-bottom:3px}
+.acc-meta{font-size:10px;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase}
+.acc-bal{font-size:22px;font-family:var(--serif)}
+.acc-bottom{display:flex;gap:8px}
+.acc-stat{flex:1;background:var(--overlay);border-radius:11px;padding:9px 11px}
+.acc-stat-label{font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
+.acc-stat-val{font-size:13px}
+
+/* FAB */
+.fab{position:fixed;bottom:calc(var(--ad-h) + 70px + env(safe-area-inset-bottom,0px));right:max(calc(50vw - 215px + 16px),16px);width:52px;height:52px;background:var(--gold);border:none;border-radius:50%;color:#0c0c14;font-size:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(201,168,76,.4);z-index:50}
+
+/* Analytics */
+.analytics{padding:16px}
+.chart-card{background:var(--surf);border:1px solid var(--brd);border-radius:20px;padding:20px;margin-bottom:12px}
+.chart-title{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:16px}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.bar-label{font-size:11px;color:var(--muted);width:70px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;height:7px;background:var(--btn-bg);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px}
+.bar-val{font-size:11px;width:64px;text-align:right;flex-shrink:0}
+.stats-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat-block{background:var(--surf2);border-radius:14px;padding:16px}
+.stat-block-label{font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px}
+.stat-block-val{font-size:20px;font-family:var(--serif)}
+.donut-wrap{display:flex;align-items:center;gap:20px;margin-bottom:4px}
+.donut-center{position:relative;flex-shrink:0;width:136px;height:136px}
+.donut-center-txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.donut-center-val{font-size:15px;font-family:var(--serif);color:var(--txt);line-height:1}
+.donut-center-lbl{font-size:8px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px}
+.donut-legend{flex:1;display:flex;flex-direction:column;gap:10px}
+.legend-item{display:flex;align-items:center;gap:10px}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.legend-label{font-size:11px;color:var(--muted);margin-bottom:2px}
+.legend-val{font-size:13px;color:var(--txt)}
+.legend-pct{font-size:10px;color:var(--muted)}
+.chart-svg-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.chart-svg-wrap::-webkit-scrollbar{display:none}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0 0 calc(var(--ad-h) + env(safe-area-inset-bottom,0px)) 0;background:rgba(0,0,0,.72);z-index:300;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.modal{background:var(--surf);border-radius:28px 28px 0 0;padding:28px 24px max(28px,env(safe-area-inset-bottom,28px));width:100%;max-width:430px;max-height:88vh;overflow-y:auto;animation:slideUp .28s cubic-bezier(.32,1.12,.72,1)}
+.cur-popup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);animation:fadeIn .2s ease}
+.cur-popup{background:var(--surf);border:1px solid rgba(201,168,76,.25);border-radius:24px;width:88%;max-width:360px;overflow:hidden;animation:popIn .22s cubic-bezier(.34,1.56,.64,1)}
+.cur-popup-head{background:var(--surf2);padding:20px 20px 16px;position:relative}
+.cur-popup-close{position:absolute;top:12px;right:12px;background:var(--btn-bg);border:none;color:var(--muted);width:28px;height:28px;border-radius:50%;font-size:16px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.cur-popup-close:hover{background:var(--hover);color:var(--txt)}
+.cur-popup-ad{background:#111;border-top:1px solid var(--brd);padding:12px;text-align:center;min-height:70px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-title{font-size:17px;font-family:var(--serif);margin-bottom:22px}
+.field{margin-bottom:15px}
+.field label{display:block;font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px}
+.field input,.field select{width:100%;background:var(--surf2);border:1px solid var(--brd);border-radius:12px;padding:12px 14px;color:var(--txt);font-size:14px;outline:none}
+.field input:focus,.field select:focus{border-color:var(--gold)}
+.field select option{background:var(--surf2)}
+.btn-row{display:flex;gap:9px;margin-top:6px}
+.btn-primary{flex:1;padding:14px;background:var(--gold);color:#0c0c14;border:none;border-radius:13px;font-size:13px;font-weight:500}
+.btn-sec{padding:14px 18px;background:var(--hover);color:var(--muted);border:1px solid var(--brd);border-radius:13px;font-size:13px}
+.btn-danger{color:var(--red)!important;border-color:rgba(255,107,107,.25)!important}
+.type-btns{display:flex;gap:8px}
+.type-btn{flex:1;padding:11px;background:var(--overlay);border:1px solid var(--brd);border-radius:11px;color:var(--muted);font-size:12px;text-align:center}
+.type-btn.active{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08)}
+.err-msg{color:var(--red);font-size:12px;margin-bottom:12px}
+
+/* Empty / misc */
+.empty{text-align:center;padding:50px 20px;color:var(--muted)}
+.empty-icon{font-size:36px;margin-bottom:10px;opacity:.5}
+.empty-txt{font-size:14px}
+.empty-sub{font-size:11px;margin-top:6px;color:rgba(240,237,232,.2)}
+.powered{text-align:center;font-size:9px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;padding:18px 0 4px;opacity:.7}
+.logout-btn{background:var(--hover);border:1px solid var(--brd);color:var(--muted);border-radius:16px;padding:5px 10px;font-size:10px}
+.fade{animation:fadeIn .25s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+/* Item cards (shared for accounts+assets) */
+.item-card{width:100%;text-align:left;background:var(--surf);border:1px solid var(--brd);border-radius:20px;padding:18px;margin-bottom:12px;display:block;cursor:pointer}
+.item-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.item-id{display:flex;gap:10px;align-items:flex-start}
+.item-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.item-name{font-size:14px;color:var(--txt);margin-bottom:2px}
+.item-meta{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.item-bal{font-size:20px;font-family:var(--serif)}
+.item-stats{display:flex;gap:8px}
+.item-stat{flex:1;background:var(--overlay);border-radius:11px;padding:8px 10px}
+.item-stat-label{font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
+.item-stat-val{font-size:12px}
+.item-actions{display:flex;gap:0;border:1px solid var(--brd);border-top:none;border-radius:0 0 20px 20px;overflow:hidden;margin-top:-12px;margin-bottom:14px}
+.item-action-btn{flex:1;padding:10px 8px;background:var(--overlay);border:none;border-right:1px solid var(--brd);color:var(--muted);font-size:11px;font-family:var(--mono);display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer}
+.item-action-btn:last-child{border-right:none}
+/* Color picker */
+.color-pick-row{display:flex;gap:8px;flex-wrap:wrap}
+.color-dot{width:28px;height:28px;border-radius:50%;border:2px solid transparent;cursor:pointer;transition:border-color .15s}
+.color-dot.active{border-color:var(--txt);box-shadow:0 0 0 2px var(--bg)}
+/* Ticker source toggles */
+.ticker-toggle{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surf);border:1px solid var(--brd);border-radius:14px;margin-bottom:8px}
+.ticker-toggle-left{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--txt)}
+.ticker-toggle-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.toggle-switch{width:42px;height:24px;border-radius:12px;background:var(--btn-bg);border:1px solid var(--brd);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0}
+.toggle-switch.on{background:var(--gold)}
+.toggle-knob{width:18px;height:18px;border-radius:50%;background:var(--txt);position:absolute;top:2px;left:2px;transition:transform .2s}
+.toggle-switch.on .toggle-knob{transform:translateX(18px)}
+/* Transactions */
+.tx-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surf);border:1px solid var(--brd);border-radius:14px;margin-bottom:8px}
+.tx-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.tx-detail{flex:1;overflow:hidden}
+.tx-name{font-size:12px;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tx-date{font-size:10px;color:var(--muted)}
+.tx-amount{font-size:14px;font-family:var(--serif);text-align:right;flex-shrink:0}
+/* Auth */
+.auth-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100%;padding:40px 24px;text-align:center}
+.auth-logo{font-size:48px;margin-bottom:8px}
+.auth-title{font-family:var(--serif);font-size:26px;margin-bottom:4px;color:var(--gold2)}
+.auth-sub{font-size:11px;color:var(--muted);margin-bottom:32px;letter-spacing:1.5px}
+.auth-form{width:100%;max-width:340px}
+.auth-field{margin-bottom:14px;text-align:left}
+.auth-field label{display:block;font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px}
+.auth-field input{width:100%;background:var(--btn-bg);border:1px solid var(--brd);border-radius:14px;padding:14px 16px;color:var(--txt);font-size:14px;outline:none;font-family:var(--mono)}
+.auth-field input:focus{border-color:var(--gold)}
+.auth-btn{width:100%;padding:16px;background:var(--gold);color:var(--bg);border:none;border-radius:14px;font-size:14px;font-weight:500;font-family:var(--mono);margin-top:6px}
+.auth-btn:disabled{opacity:.5}
+.auth-switch{margin-top:20px;font-size:12px;color:var(--muted)}
+.auth-switch button{background:none;border:none;color:var(--gold);font-size:12px;font-family:var(--mono);text-decoration:underline;cursor:pointer}
+.auth-forgot{margin-top:10px}
+.auth-forgot button{background:none;border:none;color:var(--muted);font-size:11px;font-family:var(--mono);cursor:pointer}
+.auth-err{color:var(--red);font-size:12px;margin-bottom:12px}
+.auth-success{color:var(--grn);font-size:12px;margin-bottom:12px}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:20px 0;color:var(--muted);font-size:10px;letter-spacing:1.5px}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--brd)}
+.auth-skip{background:none;border:1px solid var(--brd);color:var(--muted);border-radius:14px;padding:12px;width:100%;font-size:12px;font-family:var(--mono);cursor:pointer;margin-top:4px}
+/* Settings */
+.settings-page{padding:0 16px 20px}
+.settings-header{padding:20px 0 16px;display:flex;align-items:center;gap:12px}
+.settings-back{background:none;border:none;color:var(--muted);font-size:20px;padding:4px 8px;cursor:pointer;line-height:1}
+.settings-title{font-family:var(--serif);font-size:20px;color:var(--txt)}
+.settings-group{margin-bottom:20px}
+.settings-group-label{font-size:9px;color:var(--muted);letter-spacing:2.5px;text-transform:uppercase;margin-bottom:10px;padding:0 4px}
+.settings-list{display:flex;flex-direction:column;gap:6px}
+.settings-option{display:flex;align-items:center;gap:14px;background:var(--surf);border:1px solid var(--brd);border-radius:16px;padding:14px 16px;cursor:pointer;transition:all .15s;width:100%}
+.settings-option.active{border-color:var(--gold)}
+.settings-option-flag{font-size:22px;width:32px;text-align:center;flex-shrink:0}
+.settings-option-text{flex:1;text-align:left}
+.settings-option-name{font-size:13px;color:var(--txt)}
+.settings-option-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.settings-option-check{font-size:16px;color:var(--gold);opacity:0;transition:opacity .15s}
+.settings-option.active .settings-option-check{opacity:1}
+.gear-btn{background:var(--btn-bg);border:1px solid var(--brd);color:var(--muted);border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;cursor:pointer}
+/* Portfolio */
+.portfolio-position{display:flex;align-items:center;gap:12px;padding:14px;background:var(--surf);border:1px solid var(--brd);border-radius:16px;margin-bottom:8px;cursor:pointer}
+.pos-info{flex:1;overflow:hidden}
+.pos-symbol{font-size:13px;color:var(--txt);font-weight:500}
+.pos-name{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pos-right{text-align:right;flex-shrink:0}
+.pos-value{font-size:14px;font-family:var(--serif);color:var(--txt)}
+.pos-shares{font-size:10px;color:var(--muted)}
+/* Search */
+.search-input-wrap{position:relative;margin-bottom:12px}
+.search-results{position:absolute;top:100%;left:0;right:0;background:var(--surf);border:1px solid var(--brd);border-radius:12px;max-height:200px;overflow-y:auto;z-index:10;box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.search-result-item{padding:10px 14px;border-bottom:1px solid var(--brd);cursor:pointer;font-size:12px;color:var(--txt)}
+.search-result-item:last-child{border-bottom:none}
+.search-result-sub{font-size:10px;color:var(--muted);margin-top:2px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ═══════════════════════════════════
+//  TRANSLATIONS
+// ═══════════════════════════════════
+const LANGS={
+  nl:{flag:'🇳🇱',name:'Nederlands',t:{appName:'Passief Inkomen',powered:'Powered by Swart Financiële Focus',live:'Live',accounts:'Rekeningen',analytics:'Analyse',liveLabel:'Live vermogen',perSecond:'per seconde',todayEarned:'Vandaag verdiend',tapTimers:'Toon timers',hideTimers:'Verberg timers',timers:'Timers',addTimer:'+ Timer toevoegen',timerName:'Timer naam',timerPlaceholder:'bijv. Werk, Vakantie...',startTimer:'Starten',elapsed:'verstreken',addAccount:'Rekening toevoegen',editAccount:'Rekening bewerken',savings:'Spaarrekening',investment:'Belegging',name:'Naam',balance:'Saldo',rate:'Rente %',dividend:'Dividend per jaar',startDate:'Startdatum',save:'Opslaan',cancel:'Annuleren',delete:'Verwijderen',type:'Type',perDay:'Per dag',perYear:'Per jaar',ytd:'YTD',perHour:'Per uur',perWeek:'Per week',perMonth:'Per maand',noAccounts:'Nog geen rekeningen',noAccountsSub:'Voeg je eerste rekening toe',noTimers:'Nog geen timers',noTimersSub:'Maak een timer aan',incomeByAcc:'Inkomen per rekening (€/dag)',monthlyIncome:'Maandelijks inkomen',totalAssets:'Totaal vermogen',passiveRate:'Passief inkomen p.j.',nameReq:'Geef een naam op',balReq:'Vul een geldig saldo in',rateReq:'Vul een rentepercentage in',divReq:'Vul een dividendbedrag in',delAccConfirm:'Rekening verwijderen?',delTimerConfirm:'Timer verwijderen?',spaar:'Spaar',beleg:'Beleg',language:'Taal',dagverdeling:'Daginkomen verdeling',payoutFreq:'Uitbetaling',weekly:'Wekelijks',monthly:'Maandelijks',annually:'Jaarlijks',payoutDay:'Dag',payoutDayMonth:'Dag van de maand',nextPayout:'Volgende uitbetaling',mutations:'Mutaties',addMutation:'+ Mutatie toevoegen',inleg:'Extra inleg (€)',extraDiv:'Extra dividend/jr (€)',mutationDate:'Datum',mutationHistory:'Mutatiehistorie',noMutations:'Nog geen mutaties',balGrowth:'Vermogensgroei',divGrowth:'Dividendgroei',mutErrFill:'Vul inleg of extra dividend in',mutLabelInleg:'Inleg',mutLabelDiv:'Extra div/jr',pause:'Pauzeer',mutType:'Type mutatie',increase:'Toename',decrease:'Afname',adjustValues:'Waarden aanpassen',newBalance:'Nieuw saldo',newDividend:'Nieuw dividend/jr',adjustDate:'Ingangsdatum',adjustInfo:'Wijziging geldt vanaf de gekozen datum',resume:'Hervat',growthThisYear:'groei dit jaar',perDayShort:'/dag',currentAcc:'Betaalrekening',assets:'Vermogen',addAsset:'Vermogen toevoegen',editAsset:'Vermogen bewerken',noAssets:'Nog geen vermogen',noAssetsSub:'Voeg je eerste bron toe',stocks:'Aandelen/ETF',realestate:'Vastgoed',sideproject:'Zijprojecten',ads:'Advertentie-inkomsten',royalties:'Royalties/Content',commodities:'Grondstoffen',p2p:'P2P Leningen',other:'Overig passief',annualIncome:'Jaarlijks inkomen',returnPct:'Rendement %',dividendAmt:'Dividend per jaar',value:'Waarde',shares:'Aantal aandelen',pricePerShare:'Prijs per aandeel',symbol:'Ticker symbool',incomeMode:'Inkomen modus',byPercent:'Via rendement %',byAmount:'Via bedrag',color:'Kleur',category:'Categorie',delAssetConfirm:'Vermogen verwijderen?',transfer:'Overboeken',transferFrom:'Van',transferTo:'Naar',transferAmount:'Bedrag',transferConfirm:'Overboeken',transactions:'Transacties',noTransactions:'Nog geen transacties',tickerSources:'Live teller bronnen',tickerSourcesDesc:'Kies welke inkomsten meetellen',netWorth:'Totaal vermogen',totalIncome:'Totaal inkomen',settings:'Instellingen',settingsLang:'Taal',settingsCurrency:'Valuta',settingsTheme:'Thema',settingsAccount:'Account',login:'Inloggen',register:'Registreren',email:'E-mail',password:'Wachtwoord',confirmPassword:'Bevestig wachtwoord',forgotPassword:'Wachtwoord vergeten?',resetPassword:'Wachtwoord resetten',resetSent:'Reset e-mail verzonden!',noAccount:'Geen account?',haveAccount:'Al een account?',signUp:'Registreren',signIn:'Inloggen',logout:'Uitloggen',skipLogin:'Doorgaan zonder account',loginSubtitle:'Synchroniseer je data op al je apparaten',chooseLanguage:'Kies je taal',chooseCurrency:'Kies je valuta',chooseTheme:'Kies je thema',loggedInAs:'Ingelogd als',passwordMismatch:'Wachtwoorden komen niet overeen',passwordTooShort:'Minimaal 6 tekens',portfolio:'Portfolio',positions:'Posities',addPosition:'+ Positie toevoegen',searchTicker:'Zoek ticker...',lookupPrice:'Koers ophalen',totalValue:'Totale waarde',bankAccounts:'Bankrekeningen',otherAssets:'Overig vermogen',ordinalSuffix:'e',months:['Jan','Feb','Mrt','Apr','Mei','Jun','Jul','Aug','Sep','Okt','Nov','Dec']}},
+  en:{flag:'🇬🇧',name:'English',t:{appName:'Passive Income',powered:'Powered by Swart Financial Focus',live:'Live',accounts:'Accounts',analytics:'Analytics',liveLabel:'Live income',perSecond:'per second',todayEarned:'Earned today',tapTimers:'Show timers',hideTimers:'Hide timers',timers:'Timers',addTimer:'+ Add timer',timerName:'Timer name',timerPlaceholder:'e.g. Work, Holiday...',startTimer:'Start',elapsed:'elapsed',addAccount:'Add account',editAccount:'Edit account',savings:'Savings',investment:'Investment',name:'Name',balance:'Balance',rate:'Interest %',dividend:'Annual dividend',startDate:'Start date',save:'Save',cancel:'Cancel',delete:'Delete',type:'Type',perDay:'Per day',perYear:'Per year',ytd:'YTD',perHour:'Per hour',perWeek:'Per week',perMonth:'Per month',noAccounts:'No accounts yet',noAccountsSub:'Add your first account',noTimers:'No timers yet',noTimersSub:'Create a timer',incomeByAcc:'Income by account (€/day)',monthlyIncome:'Monthly income',totalAssets:'Total assets',passiveRate:'Passive income p.a.',nameReq:'Please enter a name',balReq:'Enter a valid balance',rateReq:'Enter an interest rate',divReq:'Enter a dividend amount',delAccConfirm:'Delete this account?',delTimerConfirm:'Delete timer?',spaar:'Savings',beleg:'Invest',language:'Language',dagverdeling:'Daily income split',payoutFreq:'Payout',weekly:'Weekly',monthly:'Monthly',annually:'Annually',payoutDay:'Day',payoutDayMonth:'Day of month',nextPayout:'Next payout',mutations:'Mutations',addMutation:'+ Add mutation',inleg:'Extra deposit (€)',extraDiv:'Extra dividend/yr (€)',mutationDate:'Date',mutationHistory:'Mutation history',noMutations:'No mutations yet',balGrowth:'Wealth growth',divGrowth:'Dividend growth',mutErrFill:'Enter deposit or extra dividend',mutLabelInleg:'Deposit',mutLabelDiv:'Extra div/yr',pause:'Pause',mutType:'Type mutation',increase:'Augmentation',decrease:'Diminution',mutType:'Mutation type',increase:'Increase',decrease:'Decrease',adjustValues:'Adjust values',newBalance:'New balance',newDividend:'New dividend/yr',adjustDate:'Effective date',adjustInfo:'Change takes effect from the chosen date',resume:'Resume',growthThisYear:'growth this year',perDayShort:'/day',currentAcc:'Current account',assets:'Assets',addAsset:'Add asset',editAsset:'Edit asset',noAssets:'No assets yet',noAssetsSub:'Add your first income source',stocks:'Stocks/ETF',realestate:'Real estate',sideproject:'Side projects',ads:'Ad revenue',royalties:'Royalties/Content',commodities:'Commodities',p2p:'P2P Lending',other:'Other passive',annualIncome:'Annual income',returnPct:'Return %',dividendAmt:'Annual dividend',value:'Value',shares:'Number of shares',pricePerShare:'Price per share',symbol:'Ticker symbol',incomeMode:'Income mode',byPercent:'By return %',byAmount:'By amount',color:'Colour',category:'Category',delAssetConfirm:'Delete this asset?',transfer:'Transfer',transferFrom:'From',transferTo:'To',transferAmount:'Amount',transferConfirm:'Transfer',transactions:'Transactions',noTransactions:'No transactions yet',tickerSources:'Live ticker sources',tickerSourcesDesc:'Choose which income counts',netWorth:'Net worth',totalIncome:'Total income',settings:'Settings',settingsLang:'Language',settingsCurrency:'Currency',settingsTheme:'Theme',settingsAccount:'Account',login:'Log in',register:'Register',email:'Email',password:'Password',confirmPassword:'Confirm password',forgotPassword:'Forgot password?',resetPassword:'Reset password',resetSent:'Reset email sent!',noAccount:'No account?',haveAccount:'Already have an account?',signUp:'Sign up',signIn:'Sign in',logout:'Log out',skipLogin:'Continue without account',loginSubtitle:'Sync your data across all your devices',chooseLanguage:'Choose your language',chooseCurrency:'Choose your currency',chooseTheme:'Choose your theme',loggedInAs:'Logged in as',passwordMismatch:'Passwords do not match',passwordTooShort:'At least 6 characters',portfolio:'Portfolio',positions:'Positions',addPosition:'+ Add position',searchTicker:'Search ticker...',lookupPrice:'Look up price',totalValue:'Total value',bankAccounts:'Bank accounts',otherAssets:'Other assets',ordinalSuffix:'.',months:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']}},
+  us:{flag:'🇺🇸',name:'English (US)',t:{appName:'Passive Income',powered:'Powered by Swart Financial Focus',live:'Live',accounts:'Accounts',analytics:'Analytics',liveLabel:'Live income',perSecond:'per second',todayEarned:'Earned today',tapTimers:'Show timers',hideTimers:'Hide timers',timers:'Timers',addTimer:'+ Add timer',timerName:'Timer name',timerPlaceholder:'e.g. Work, Vacation...',startTimer:'Start',elapsed:'elapsed',addAccount:'Add account',editAccount:'Edit account',savings:'Savings',investment:'Investment',name:'Name',balance:'Balance',rate:'Interest %',dividend:'Annual dividend',startDate:'Start date',save:'Save',cancel:'Cancel',delete:'Delete',type:'Type',perDay:'Per day',perYear:'Per year',ytd:'YTD',perHour:'Per hour',perWeek:'Per week',perMonth:'Per month',noAccounts:'No accounts yet',noAccountsSub:'Add your first account',noTimers:'No timers yet',noTimersSub:'Create a timer',incomeByAcc:'Income by account (€/day)',monthlyIncome:'Monthly income',totalAssets:'Total assets',passiveRate:'Passive income p.a.',nameReq:'Please enter a name',balReq:'Enter a valid balance',rateReq:'Enter an interest rate',divReq:'Enter a dividend amount',delAccConfirm:'Delete this account?',delTimerConfirm:'Delete timer?',spaar:'Savings',beleg:'Invest',language:'Language',dagverdeling:'Daily income split',payoutFreq:'Payout',weekly:'Weekly',monthly:'Monthly',annually:'Annually',payoutDay:'Day',payoutDayMonth:'Day of month',nextPayout:'Next payout',mutations:'Mutations',addMutation:'+ Add mutation',inleg:'Extra deposit (€)',extraDiv:'Extra dividend/yr (€)',mutationDate:'Date',mutationHistory:'Mutation history',noMutations:'No mutations yet',balGrowth:'Wealth growth',divGrowth:'Dividend growth',mutErrFill:'Enter deposit or extra dividend',mutLabelInleg:'Deposit',mutLabelDiv:'Extra div/yr',pause:'Pause',mutType:'Mutation type',increase:'Increase',decrease:'Decrease',resume:'Resume',growthThisYear:'growth this year',perDayShort:'/day',currentAcc:'Current account',assets:'Assets',addAsset:'Add asset',editAsset:'Edit asset',noAssets:'No assets yet',noAssetsSub:'Add your first income source',stocks:'Stocks/ETF',realestate:'Real estate',sideproject:'Side projects',ads:'Ad revenue',royalties:'Royalties/Content',commodities:'Commodities',p2p:'P2P Lending',other:'Other passive',annualIncome:'Annual income',returnPct:'Return %',dividendAmt:'Annual dividend',value:'Value',shares:'Number of shares',pricePerShare:'Price per share',symbol:'Ticker symbol',incomeMode:'Income mode',byPercent:'By return %',byAmount:'By amount',color:'Color',category:'Category',delAssetConfirm:'Delete this asset?',transfer:'Transfer',transferFrom:'From',transferTo:'To',transferAmount:'Amount',transferConfirm:'Transfer',transactions:'Transactions',noTransactions:'No transactions yet',tickerSources:'Live ticker sources',tickerSourcesDesc:'Choose which income counts',netWorth:'Net worth',totalIncome:'Total income',settings:'Settings',settingsLang:'Language',settingsCurrency:'Currency',settingsTheme:'Theme',settingsAccount:'Account',login:'Log in',register:'Register',email:'Email',password:'Password',confirmPassword:'Confirm password',forgotPassword:'Forgot password?',resetPassword:'Reset password',resetSent:'Reset email sent!',noAccount:'No account?',haveAccount:'Already have an account?',signUp:'Sign up',signIn:'Sign in',logout:'Log out',skipLogin:'Continue without account',loginSubtitle:'Sync your data across all your devices',chooseLanguage:'Choose your language',chooseCurrency:'Choose your currency',chooseTheme:'Choose your theme',loggedInAs:'Logged in as',passwordMismatch:'Passwords do not match',passwordTooShort:'At least 6 characters',portfolio:'Portfolio',positions:'Positions',addPosition:'+ Add position',searchTicker:'Search ticker...',lookupPrice:'Look up price',totalValue:'Total value',bankAccounts:'Bank accounts',otherAssets:'Other assets',ordinalSuffix:'.',months:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']}},
+  de:{flag:'🇩🇪',name:'Deutsch',t:{appName:'Passives Einkommen',powered:'Powered by Swart Financial Focus',live:'Live',accounts:'Konten',analytics:'Analyse',liveLabel:'Live-Einkommen',perSecond:'pro Sekunde',todayEarned:'Heute verdient',tapTimers:'Timer anzeigen',hideTimers:'Verbergen',timers:'Timer',addTimer:'+ Timer hinzufügen',timerName:'Timer-Name',timerPlaceholder:'z.B. Arbeit, Urlaub...',startTimer:'Starten',elapsed:'vergangen',addAccount:'Konto hinzufügen',editAccount:'Konto bearbeiten',savings:'Sparkonto',investment:'Investition',name:'Name',balance:'Kontostand',rate:'Zinssatz %',dividend:'Jahresdividende',startDate:'Startdatum',save:'Speichern',cancel:'Abbrechen',delete:'Löschen',type:'Typ',perDay:'Pro Tag',perYear:'Pro Jahr',ytd:'YTD',perHour:'Pro Stunde',perWeek:'Pro Woche',perMonth:'Pro Monat',noAccounts:'Noch keine Konten',noAccountsSub:'Erstes Konto hinzufügen',noTimers:'Noch keine Timer',noTimersSub:'Timer erstellen',incomeByAcc:'Einkommen nach Konto (€/Tag)',monthlyIncome:'Monatliches Einkommen',totalAssets:'Gesamtvermögen',passiveRate:'Passives Einkommen p.a.',nameReq:'Bitte Namen eingeben',balReq:'Gültigen Kontostand eingeben',rateReq:'Zinssatz eingeben',divReq:'Dividendenbetrag eingeben',delAccConfirm:'Konto löschen?',delTimerConfirm:'Timer löschen?',spaar:'Spar',beleg:'Invest',language:'Sprache',dagverdeling:'Tageseinkommen Aufteilung',payoutFreq:'Auszahlung',weekly:'Wöchentlich',monthly:'Monatlich',annually:'Jährlich',payoutDay:'Tag',payoutDayMonth:'Tag des Monats',nextPayout:'Nächste Auszahlung',mutations:'Mutationen',addMutation:'+ Mutation hinzufügen',inleg:'Extra Einlage (€)',extraDiv:'Extra Dividende/Jahr (€)',mutationDate:'Datum',mutationHistory:'Mutationshistorie',noMutations:'Noch keine Mutationen',balGrowth:'Vermögenswachstum',divGrowth:'Dividendenwachstum',mutErrFill:'Einlage oder Dividende eingeben',mutLabelInleg:'Einlage',mutLabelDiv:'Extra Div/Jahr',pause:'Pausieren',mutType:'Mutationstyp',increase:'Zunahme',decrease:'Abnahme',resume:'Fortsetzen',growthThisYear:'Wachstum dieses Jahr',perDayShort:'/Tag',currentAcc:'Girokonto',assets:'Vermögen',addAsset:'Vermögen hinzufügen',editAsset:'Vermögen bearbeiten',noAssets:'Noch kein Vermögen',noAssetsSub:'Erste Quelle hinzufügen',stocks:'Aktien/ETF',realestate:'Immobilien',sideproject:'Nebenprojekte',ads:'Werbeeinnahmen',royalties:'Lizenzgebühren/Content',commodities:'Rohstoffe',p2p:'P2P-Darlehen',other:'Sonstiges passiv',annualIncome:'Jährliches Einkommen',returnPct:'Rendite %',dividendAmt:'Jahresdividende',value:'Wert',shares:'Anzahl Aktien',pricePerShare:'Preis pro Aktie',symbol:'Ticker-Symbol',incomeMode:'Einkommensmodus',byPercent:'Nach Rendite %',byAmount:'Nach Betrag',color:'Farbe',category:'Kategorie',delAssetConfirm:'Vermögen löschen?',transfer:'Überweisen',transferFrom:'Von',transferTo:'Nach',transferAmount:'Betrag',transferConfirm:'Überweisen',transactions:'Transaktionen',noTransactions:'Noch keine Transaktionen',tickerSources:'Live-Ticker-Quellen',tickerSourcesDesc:'Wählen Sie welche Einkünfte zählen',netWorth:'Gesamtvermögen',totalIncome:'Gesamteinkommen',settings:'Einstellungen',settingsLang:'Sprache',settingsCurrency:'Währung',settingsTheme:'Thema',settingsAccount:'Konto',login:'Anmelden',register:'Registrieren',email:'E-Mail',password:'Passwort',confirmPassword:'Passwort bestätigen',forgotPassword:'Passwort vergessen?',resetPassword:'Passwort zurücksetzen',resetSent:'Reset-E-Mail gesendet!',noAccount:'Kein Konto?',haveAccount:'Bereits ein Konto?',signUp:'Registrieren',signIn:'Anmelden',logout:'Abmelden',skipLogin:'Ohne Konto fortfahren',loginSubtitle:'Synchronisieren Sie Ihre Daten',chooseLanguage:'Sprache wählen',chooseCurrency:'Währung wählen',chooseTheme:'Thema wählen',loggedInAs:'Angemeldet als',passwordMismatch:'Passwörter stimmen nicht überein',passwordTooShort:'Mindestens 6 Zeichen',portfolio:'Portfolio',positions:'Positionen',addPosition:'+ Position hinzufügen',searchTicker:'Ticker suchen...',lookupPrice:'Kurs abrufen',totalValue:'Gesamtwert',bankAccounts:'Bankkonten',otherAssets:'Sonstiges Vermögen',ordinalSuffix:'.',months:['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez']}},
+  fr:{flag:'🇫🇷',name:'Français',t:{appName:'Revenu Passif',powered:'Propulsé par Swart Financial Focus',live:'Direct',accounts:'Comptes',analytics:'Analytique',liveLabel:'Revenu en direct',perSecond:'par seconde',todayEarned:"Gagné aujourd'hui",tapTimers:'Voir minuteries',hideTimers:'Masquer',timers:'Minuteries',addTimer:'+ Ajouter',timerName:'Nom',timerPlaceholder:'ex. Travail...',startTimer:'Démarrer',elapsed:'écoulé',addAccount:'Ajouter compte',editAccount:'Modifier',savings:"Épargne",investment:'Investissement',name:'Nom',balance:'Solde',rate:"Taux %",dividend:'Dividende annuel',startDate:'Date début',save:'Enregistrer',cancel:'Annuler',delete:'Supprimer',type:'Type',perDay:'Par jour',perYear:'Par an',ytd:'YTD',perHour:'Par heure',perWeek:'Par semaine',perMonth:'Par mois',noAccounts:'Aucun compte',noAccountsSub:'Ajoutez votre premier compte',noTimers:'Aucune minuterie',noTimersSub:'Créer une minuterie',incomeByAcc:'Revenu par compte (€/jour)',monthlyIncome:'Revenu mensuel',totalAssets:'Total actifs',passiveRate:'Revenu passif p.a.',nameReq:'Entrez un nom',balReq:'Entrez un solde valide',rateReq:'Entrez un taux',divReq:'Entrez un montant',delAccConfirm:'Supprimer ce compte ?',delTimerConfirm:'Supprimer minuterie ?',spaar:'Épargne',beleg:'Invest',language:'Langue',dagverdeling:'Répartition quotidienne',payoutFreq:'Paiement',weekly:'Hebdomadaire',monthly:'Mensuel',annually:'Annuel',payoutDay:'Jour',payoutDayMonth:'Jour du mois',nextPayout:'Prochain paiement',mutations:'Mutations',addMutation:'+ Ajouter mutation',inleg:'Apport supplémentaire (€)',extraDiv:'Dividende supplémentaire/an (€)',mutationDate:'Date',mutationHistory:'Historique mutations',noMutations:'Aucune mutation',balGrowth:'Croissance patrimoine',divGrowth:'Croissance dividende',mutErrFill:'Saisissez un apport ou dividende',mutLabelInleg:'Apport',mutLabelDiv:'Div supp./an',pause:'Pause',resume:'Reprendre',growthThisYear:'croissance cette année',perDayShort:'/jour',currentAcc:'Compte courant',assets:'Actifs',addAsset:'Ajouter un actif',editAsset:'Modifier actif',noAssets:'Aucun actif',noAssetsSub:'Ajoutez votre première source',stocks:'Actions/ETF',realestate:'Immobilier',sideproject:'Projets secondaires',ads:'Revenus publicitaires',royalties:'Redevances/Contenu',commodities:'Matières premières',p2p:'Prêts P2P',other:'Autre passif',annualIncome:'Revenu annuel',returnPct:'Rendement %',dividendAmt:'Dividende annuel',value:'Valeur',shares:'Nombre d actions',pricePerShare:'Prix par action',symbol:'Symbole ticker',incomeMode:'Mode de revenu',byPercent:'Par rendement %',byAmount:'Par montant',color:'Couleur',category:'Catégorie',delAssetConfirm:'Supprimer cet actif ?',transfer:'Virement',transferFrom:'De',transferTo:'Vers',transferAmount:'Montant',transferConfirm:'Virer',transactions:'Transactions',noTransactions:'Aucune transaction',tickerSources:'Sources ticker en direct',tickerSourcesDesc:'Choisissez quels revenus comptent',netWorth:'Valeur nette',totalIncome:'Revenu total',settings:'Paramètres',settingsLang:'Langue',settingsCurrency:'Devise',settingsTheme:'Thème',settingsAccount:'Compte',login:'Connexion',register:'Inscription',email:'E-mail',password:'Mot de passe',confirmPassword:'Confirmer mot de passe',forgotPassword:'Mot de passe oublié ?',resetPassword:'Réinitialiser',resetSent:'E-mail de réinitialisation envoyé !',noAccount:'Pas de compte ?',haveAccount:'Déjà un compte ?',signUp:'S inscrire',signIn:'Se connecter',logout:'Déconnexion',skipLogin:'Continuer sans compte',loginSubtitle:'Synchronisez vos données',chooseLanguage:'Choisir la langue',chooseCurrency:'Choisir la devise',chooseTheme:'Choisir le thème',loggedInAs:'Connecté en tant que',passwordMismatch:'Les mots de passe ne correspondent pas',passwordTooShort:'Au moins 6 caractères',portfolio:'Portefeuille',positions:'Positions',addPosition:'+ Ajouter position',searchTicker:'Chercher ticker...',lookupPrice:'Chercher prix',totalValue:'Valeur totale',bankAccounts:'Comptes bancaires',otherAssets:'Autres actifs',ordinalSuffix:'.',months:['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc']}},
+  es:{flag:'🇪🇸',name:'Español',t:{appName:'Ingreso Pasivo',powered:'Impulsado por Swart Financial Focus',live:'En vivo',accounts:'Cuentas',analytics:'Análisis',liveLabel:'Ingreso en vivo',perSecond:'por segundo',todayEarned:'Ganado hoy',tapTimers:'Ver temporizadores',hideTimers:'Ocultar',timers:'Temporizadores',addTimer:'+ Agregar',timerName:'Nombre',timerPlaceholder:'ej. Trabajo...',startTimer:'Iniciar',elapsed:'transcurrido',addAccount:'Agregar cuenta',editAccount:'Editar',savings:'Ahorro',investment:'Inversión',name:'Nombre',balance:'Saldo',rate:'Tasa %',dividend:'Dividendo anual',startDate:'Fecha inicio',save:'Guardar',cancel:'Cancelar',delete:'Eliminar',type:'Tipo',perDay:'Por día',perYear:'Por año',ytd:'YTD',perHour:'Por hora',perWeek:'Por semana',perMonth:'Por mes',noAccounts:'Sin cuentas',noAccountsSub:'Añade tu primera cuenta',noTimers:'Sin temporizadores',noTimersSub:'Crea un temporizador',incomeByAcc:'Ingreso por cuenta (€/día)',monthlyIncome:'Ingreso mensual',totalAssets:'Total activos',passiveRate:'Ingreso pasivo p.a.',nameReq:'Ingresa un nombre',balReq:'Ingresa un saldo válido',rateReq:'Ingresa una tasa',divReq:'Ingresa un monto',delAccConfirm:'¿Eliminar cuenta?',delTimerConfirm:'¿Eliminar temporizador?',spaar:'Ahorro',beleg:'Invers',language:'Idioma',dagverdeling:'Distribución diaria',payoutFreq:'Pago',weekly:'Semanal',monthly:'Mensual',annually:'Anual',payoutDay:'Día',payoutDayMonth:'Día del mes',nextPayout:'Próximo pago',mutations:'Mutaciones',addMutation:'+ Agregar mutación',inleg:'Depósito extra (€)',extraDiv:'Dividendo extra/año (€)',mutationDate:'Fecha',mutationHistory:'Historial mutaciones',noMutations:'Sin mutaciones',balGrowth:'Crecimiento patrimonio',divGrowth:'Crecimiento dividendo',mutErrFill:'Ingresa depósito o dividendo',mutLabelInleg:'Depósito',mutLabelDiv:'Div extra/año',pause:'Pausar',mutType:'Tipo mutação',increase:'Aumento',decrease:'Redução',mutType:'Tipo mutación',increase:'Aumento',decrease:'Disminución',resume:'Reanudar',growthThisYear:'crecimiento este año',perDayShort:'/día',currentAcc:'Cuenta corriente',assets:'Activos',addAsset:'Agregar activo',editAsset:'Editar activo',noAssets:'Sin activos',noAssetsSub:'Añade tu primera fuente',stocks:'Acciones/ETF',realestate:'Bienes raíces',sideproject:'Proyectos secundarios',ads:'Ingresos publicitarios',royalties:'Regalías/Contenido',commodities:'Materias primas',p2p:'Préstamos P2P',other:'Otro pasivo',annualIncome:'Ingreso anual',returnPct:'Rendimiento %',dividendAmt:'Dividendo anual',value:'Valor',shares:'Número de acciones',pricePerShare:'Precio por acción',symbol:'Símbolo ticker',incomeMode:'Modo de ingreso',byPercent:'Por rendimiento %',byAmount:'Por monto',color:'Color',category:'Categoría',delAssetConfirm:'¿Eliminar este activo?',transfer:'Transferir',transferFrom:'De',transferTo:'A',transferAmount:'Monto',transferConfirm:'Transferir',transactions:'Transacciones',noTransactions:'Sin transacciones',tickerSources:'Fuentes de ticker en vivo',tickerSourcesDesc:'Elige qué ingresos cuentan',netWorth:'Patrimonio neto',totalIncome:'Ingreso total',settings:'Configuración',settingsLang:'Idioma',settingsCurrency:'Moneda',settingsTheme:'Tema',settingsAccount:'Cuenta',login:'Iniciar sesión',register:'Registrarse',email:'Correo',password:'Contraseña',confirmPassword:'Confirmar contraseña',forgotPassword:'¿Olvidaste tu contraseña?',resetPassword:'Restablecer',resetSent:'¡Correo de restablecimiento enviado!',noAccount:'¿Sin cuenta?',haveAccount:'¿Ya tienes cuenta?',signUp:'Registrarse',signIn:'Iniciar sesión',logout:'Cerrar sesión',skipLogin:'Continuar sin cuenta',loginSubtitle:'Sincroniza tus datos',chooseLanguage:'Elegir idioma',chooseCurrency:'Elegir moneda',chooseTheme:'Elegir tema',loggedInAs:'Conectado como',passwordMismatch:'Las contraseñas no coinciden',passwordTooShort:'Al menos 6 caracteres',portfolio:'Portafolio',positions:'Posiciones',addPosition:'+ Agregar posición',searchTicker:'Buscar ticker...',lookupPrice:'Buscar precio',totalValue:'Valor total',bankAccounts:'Cuentas bancarias',otherAssets:'Otros activos',ordinalSuffix:'.',months:['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']}},
+  ar:{flag:'🇸🇦',name:'العربية',t:{appName:'الدخل السلبي',powered:'مدعوم من Swart Financial Focus',live:'مباشر',accounts:'الحسابات',analytics:'تحليلات',liveLabel:'الدخل المباشر',perSecond:'في الثانية',todayEarned:'مكتسب اليوم',tapTimers:'عرض المؤقتات',hideTimers:'إخفاء',timers:'المؤقتات',addTimer:'+ إضافة',timerName:'اسم المؤقت',timerPlaceholder:'مثال: العمل...',startTimer:'بدء',elapsed:'مضى',addAccount:'إضافة حساب',editAccount:'تعديل',savings:'توفير',investment:'استثمار',name:'الاسم',balance:'الرصيد',rate:'الفائدة %',dividend:'الأرباح السنوية',startDate:'تاريخ البدء',save:'حفظ',cancel:'إلغاء',delete:'حذف',type:'النوع',perDay:'يومياً',perYear:'سنوياً',ytd:'منذ بداية العام',perHour:'في الساعة',perWeek:'في الأسبوع',perMonth:'في الشهر',noAccounts:'لا توجد حسابات',noAccountsSub:'أضف حسابك الأول',noTimers:'لا توجد مؤقتات',noTimersSub:'أنشئ مؤقتاً',incomeByAcc:'الدخل حسب الحساب (€/يوم)',monthlyIncome:'الدخل الشهري',totalAssets:'إجمالي الأصول',passiveRate:'الدخل السلبي سنوياً',nameReq:'يرجى إدخال اسم',balReq:'أدخل رصيداً صحيحاً',rateReq:'أدخل نسبة فائدة',divReq:'أدخل مبلغ الأرباح',delAccConfirm:'حذف هذا الحساب؟',delTimerConfirm:'حذف المؤقت؟',spaar:'توفير',beleg:'استثمار',language:'اللغة',dagverdeling:'توزيع الدخل اليومي',payoutFreq:'الدفع',weekly:'أسبوعي',monthly:'شهري',annually:'سنوي',payoutDay:'اليوم',payoutDayMonth:'يوم الشهر',nextPayout:'الدفعة القادمة',mutations:'تحويلات',addMutation:'+ إضافة تحويل',inleg:'إيداع إضافي (€)',extraDiv:'أرباح إضافية/سنة (€)',mutationDate:'التاريخ',mutationHistory:'سجل التحويلات',noMutations:'لا توجد تحويلات',balGrowth:'نمو الثروة',divGrowth:'نمو الأرباح',mutErrFill:'أدخل إيداعاً أو أرباحاً',mutLabelInleg:'إيداع',mutLabelDiv:'أرباح إضافية',pause:'إيقاف مؤقت',mutType:'نوع التحويل',increase:'زيادة',decrease:'سحب',resume:'استئناف',growthThisYear:'نمو هذا العام',perDayShort:'/يوم',currentAcc:'الحساب الجاري',assets:'الأصول',addAsset:'إضافة أصل',editAsset:'تعديل أصل',noAssets:'لا توجد أصول',noAssetsSub:'أضف مصدرك الأول',stocks:'أسهم/صناديق',realestate:'عقارات',sideproject:'مشاريع جانبية',ads:'إيرادات إعلانية',royalties:'حقوق ملكية/محتوى',commodities:'سلع',p2p:'إقراض P2P',other:'دخل سلبي آخر',annualIncome:'الدخل السنوي',returnPct:'العائد %',dividendAmt:'الأرباح السنوية',value:'القيمة',shares:'عدد الأسهم',pricePerShare:'سعر السهم',symbol:'رمز التداول',incomeMode:'وضع الدخل',byPercent:'حسب العائد %',byAmount:'حسب المبلغ',color:'اللون',category:'الفئة',delAssetConfirm:'حذف هذا الأصل؟',transfer:'تحويل',transferFrom:'من',transferTo:'إلى',transferAmount:'المبلغ',transferConfirm:'تحويل',transactions:'المعاملات',noTransactions:'لا توجد معاملات',tickerSources:'مصادر البث المباشر',tickerSourcesDesc:'اختر الدخل الذي يحسب',netWorth:'صافي الثروة',totalIncome:'إجمالي الدخل',settings:'الإعدادات',settingsLang:'اللغة',settingsCurrency:'العملة',settingsTheme:'المظهر',settingsAccount:'الحساب',login:'تسجيل الدخول',register:'التسجيل',email:'البريد الإلكتروني',password:'كلمة المرور',confirmPassword:'تأكيد كلمة المرور',forgotPassword:'نسيت كلمة المرور؟',resetPassword:'إعادة تعيين',resetSent:'تم إرسال بريد إعادة التعيين!',noAccount:'لا يوجد حساب؟',haveAccount:'لديك حساب بالفعل؟',signUp:'التسجيل',signIn:'تسجيل الدخول',logout:'تسجيل الخروج',skipLogin:'المتابعة بدون حساب',loginSubtitle:'مزامنة بياناتك',chooseLanguage:'اختر اللغة',chooseCurrency:'اختر العملة',chooseTheme:'اختر المظهر',loggedInAs:'مسجل الدخول كـ',passwordMismatch:'كلمات المرور غير متطابقة',passwordTooShort:'6 أحرف على الأقل',portfolio:'المحفظة',positions:'المراكز',addPosition:'+ إضافة مركز',searchTicker:'بحث رمز...',lookupPrice:'البحث عن السعر',totalValue:'القيمة الإجمالية',bankAccounts:'الحسابات المصرفية',otherAssets:'أصول أخرى',ordinalSuffix:'.',months:['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']}},
+  zh:{flag:'🇨🇳',name:'中文',t:{appName:'被动收入',powered:'由 Swart Financial Focus 提供支持',live:'实时',accounts:'账户',analytics:'分析',liveLabel:'实时收入',perSecond:'每秒',todayEarned:'今日已赚',tapTimers:'查看计时器',hideTimers:'隐藏',timers:'计时器',addTimer:'+ 添加',timerName:'名称',timerPlaceholder:'例如：工作...',startTimer:'开始',elapsed:'已用',addAccount:'添加账户',editAccount:'编辑',savings:'储蓄',investment:'投资',name:'名称',balance:'余额',rate:'利率 %',dividend:'年度股息',startDate:'开始日期',save:'保存',cancel:'取消',delete:'删除',type:'类型',perDay:'每天',perYear:'每年',ytd:'本年迄今',perHour:'每小时',perWeek:'每周',perMonth:'每月',noAccounts:'暂无账户',noAccountsSub:'添加您的第一个账户',noTimers:'暂无计时器',noTimersSub:'创建计时器',incomeByAcc:'各账户收入 (€/天)',monthlyIncome:'月收入',totalAssets:'总资产',passiveRate:'被动收入（年）',nameReq:'请输入名称',balReq:'请输入有效余额',rateReq:'请输入利率',divReq:'请输入股息金额',delAccConfirm:'确定删除此账户？',delTimerConfirm:'删除计时器？',spaar:'储蓄',beleg:'投资',language:'语言',dagverdeling:'日收入分配',payoutFreq:'支付',weekly:'每周',monthly:'每月',annually:'每年',payoutDay:'日',payoutDayMonth:'每月日期',nextPayout:'下次支付',mutations:'变动',addMutation:'+ 添加变动',inleg:'额外投入 (€)',extraDiv:'额外股息/年 (€)',mutationDate:'日期',mutationHistory:'变动历史',noMutations:'暂无变动',balGrowth:'资产增长',divGrowth:'股息增长',mutErrFill:'请输入投入或额外股息',mutLabelInleg:'投入',mutLabelDiv:'额外股息/年',pause:'暂停',mutType:'变动类型',increase:'增加',decrease:'减少',resume:'继续',growthThisYear:'今年增长',perDayShort:'/天',currentAcc:'活期账户',assets:'资产',addAsset:'添加资产',editAsset:'编辑资产',noAssets:'暂无资产',noAssetsSub:'添加您的第一个来源',stocks:'股票/ETF',realestate:'房地产',sideproject:'副业',ads:'广告收入',royalties:'版税/内容',commodities:'商品',p2p:'P2P贷款',other:'其他被动收入',annualIncome:'年收入',returnPct:'收益率 %',dividendAmt:'年度股息',value:'价值',shares:'股票数量',pricePerShare:'每股价格',symbol:'股票代码',incomeMode:'收入模式',byPercent:'按收益率 %',byAmount:'按金额',color:'颜色',category:'类别',delAssetConfirm:'删除此资产？',transfer:'转账',transferFrom:'从',transferTo:'到',transferAmount:'金额',transferConfirm:'转账',transactions:'交易',noTransactions:'暂无交易',tickerSources:'实时行情源',tickerSourcesDesc:'选择计入的收入',netWorth:'净值',totalIncome:'总收入',settings:'设置',settingsLang:'语言',settingsCurrency:'货币',settingsTheme:'主题',settingsAccount:'账户',login:'登录',register:'注册',email:'电子邮件',password:'密码',confirmPassword:'确认密码',forgotPassword:'忘记密码？',resetPassword:'重置密码',resetSent:'重置邮件已发送！',noAccount:'没有账户？',haveAccount:'已有账户？',signUp:'注册',signIn:'登录',logout:'登出',skipLogin:'不注册继续',loginSubtitle:'同步您的数据',chooseLanguage:'选择语言',chooseCurrency:'选择货币',chooseTheme:'选择主题',loggedInAs:'已登录为',passwordMismatch:'密码不匹配',passwordTooShort:'至少6个字符',portfolio:'投资组合',positions:'持仓',addPosition:'+ 添加持仓',searchTicker:'搜索代码...',lookupPrice:'查询价格',totalValue:'总价值',bankAccounts:'银行账户',otherAssets:'其他资产',ordinalSuffix:'.',months:['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月']}},
+  pt:{flag:'🇵🇹',name:'Português',t:{appName:'Renda Passiva',powered:'Powered by Swart Financial Focus',live:'Ao vivo',accounts:'Contas',analytics:'Análise',liveLabel:'Renda ao vivo',perSecond:'por segundo',todayEarned:'Ganho hoje',tapTimers:'Ver temporizadores',hideTimers:'Ocultar',timers:'Temporizadores',addTimer:'+ Adicionar',timerName:'Nome',timerPlaceholder:'ex. Trabalho...',startTimer:'Iniciar',elapsed:'decorrido',addAccount:'Adicionar conta',editAccount:'Editar conta',savings:'Poupança',investment:'Investimento',name:'Nome',balance:'Saldo',rate:'Taxa %',dividend:'Dividendo anual',startDate:'Data início',save:'Guardar',cancel:'Cancelar',delete:'Eliminar',type:'Tipo',perDay:'Por dia',perYear:'Por ano',ytd:'YTD',perHour:'Por hora',perWeek:'Por semana',perMonth:'Por mês',noAccounts:'Sem contas',noAccountsSub:'Adicione a sua primeira conta',noTimers:'Sem temporizadores',noTimersSub:'Criar temporizador',incomeByAcc:'Rendimento por conta (€/dia)',monthlyIncome:'Rendimento mensal',totalAssets:'Total de ativos',passiveRate:'Renda passiva p.a.',nameReq:'Introduza um nome',balReq:'Introduza um saldo válido',rateReq:'Introduza uma taxa',divReq:'Introduza um dividendo',delAccConfirm:'Eliminar esta conta?',delTimerConfirm:'Eliminar temporizador?',spaar:'Poupança',beleg:'Invest',language:'Idioma',dagverdeling:'Distribuição diária',payoutFreq:'Pagamento',weekly:'Semanal',monthly:'Mensal',annually:'Anual',payoutDay:'Dia',payoutDayMonth:'Dia do mês',nextPayout:'Próximo pagamento',mutations:'Mutações',addMutation:'+ Adicionar mutação',inleg:'Depósito extra (€)',extraDiv:'Dividendo extra/ano (€)',mutationDate:'Data',mutationHistory:'Histórico de mutações',noMutations:'Sem mutações',balGrowth:'Crescimento do património',divGrowth:'Crescimento do dividendo',mutErrFill:'Introduza depósito ou dividendo',mutLabelInleg:'Depósito',mutLabelDiv:'Div extra/ano',pause:'Pausar',resume:'Retomar',growthThisYear:'crescimento este ano',perDayShort:'/dia',currentAcc:'Conta corrente',assets:'Ativos',addAsset:'Adicionar ativo',editAsset:'Editar ativo',noAssets:'Sem ativos',noAssetsSub:'Adicione a sua primeira fonte',stocks:'Ações/ETF',realestate:'Imobiliário',sideproject:'Projetos secundários',ads:'Receitas de publicidade',royalties:'Royalties/Conteúdo',commodities:'Commodities',p2p:'Empréstimos P2P',other:'Outro passivo',annualIncome:'Rendimento anual',returnPct:'Retorno %',dividendAmt:'Dividendo anual',value:'Valor',shares:'Número de ações',pricePerShare:'Preço por ação',symbol:'Símbolo ticker',incomeMode:'Modo de rendimento',byPercent:'Por retorno %',byAmount:'Por montante',color:'Cor',category:'Categoria',delAssetConfirm:'Eliminar este ativo?',transfer:'Transferir',transferFrom:'De',transferTo:'Para',transferAmount:'Montante',transferConfirm:'Transferir',transactions:'Transações',noTransactions:'Sem transações',tickerSources:'Fontes de ticker ao vivo',tickerSourcesDesc:'Escolha quais rendimentos contam',netWorth:'Patrimônio líquido',totalIncome:'Rendimento total',settings:'Definições',settingsLang:'Idioma',settingsCurrency:'Moeda',settingsTheme:'Tema',settingsAccount:'Conta',login:'Entrar',register:'Registar',email:'E-mail',password:'Palavra-passe',confirmPassword:'Confirmar palavra-passe',forgotPassword:'Esqueceu a palavra-passe?',resetPassword:'Redefinir',resetSent:'E-mail de redefinição enviado!',noAccount:'Sem conta?',haveAccount:'Já tem conta?',signUp:'Registar',signIn:'Entrar',logout:'Sair',skipLogin:'Continuar sem conta',loginSubtitle:'Sincronize os seus dados',chooseLanguage:'Escolher idioma',chooseCurrency:'Escolher moeda',chooseTheme:'Escolher tema',loggedInAs:'Conectado como',passwordMismatch:'As palavras-passe não correspondem',passwordTooShort:'Pelo menos 6 caracteres',portfolio:'Portfólio',positions:'Posições',addPosition:'+ Adicionar posição',searchTicker:'Procurar ticker...',lookupPrice:'Procurar preço',totalValue:'Valor total',bankAccounts:'Contas bancárias',otherAssets:'Outros ativos',ordinalSuffix:'.',months:['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']}},
+  it:{flag:'🇮🇹',name:'Italiano',t:{appName:'Reddito Passivo',powered:'Powered by Swart Financial Focus',live:'Live',accounts:'Conti',analytics:'Analisi',liveLabel:'Reddito live',perSecond:'al secondo',todayEarned:'Guadagnato oggi',tapTimers:'Mostra timer',hideTimers:'Nascondi',timers:'Timer',addTimer:'+ Aggiungi',timerName:'Nome',timerPlaceholder:'es. Lavoro...',startTimer:'Avvia',elapsed:'trascorso',addAccount:'Aggiungi conto',editAccount:'Modifica',savings:'Risparmio',investment:'Investimento',name:'Nome',balance:'Saldo',rate:'Tasso %',dividend:'Dividendo annuale',startDate:'Data inizio',save:'Salva',cancel:'Annulla',delete:'Elimina',type:'Tipo',perDay:'Al giorno',perYear:"All'anno",ytd:'YTD',perHour:"All'ora",perWeek:'Alla settimana',perMonth:'Al mese',noAccounts:'Nessun conto',noAccountsSub:'Aggiungi il tuo primo conto',noTimers:'Nessun timer',noTimersSub:'Crea un timer',incomeByAcc:'Reddito per conto (€/giorno)',monthlyIncome:'Reddito mensile',totalAssets:'Totale attivi',passiveRate:'Reddito passivo p.a.',nameReq:'Inserisci un nome',balReq:'Inserisci un saldo valido',rateReq:'Inserisci un tasso',divReq:'Inserisci un dividendo',delAccConfirm:'Eliminare questo conto?',delTimerConfirm:'Eliminare timer?',spaar:'Risparmio',beleg:'Invest',language:'Lingua',dagverdeling:'Distribuzione giornaliera',payoutFreq:'Pagamento',weekly:'Settimanale',monthly:'Mensile',annually:'Annuale',payoutDay:'Giorno',payoutDayMonth:'Giorno del mese',nextPayout:'Prossimo pagamento',mutations:'Mutazioni',addMutation:'+ Aggiungi mutazione',inleg:'Deposito extra (€)',extraDiv:'Dividendo extra/anno (€)',mutationDate:'Data',mutationHistory:'Storico mutazioni',noMutations:'Nessuna mutazione',balGrowth:'Crescita patrimonio',divGrowth:'Crescita dividendo',mutErrFill:'Inserisci deposito o dividendo',mutLabelInleg:'Deposito',mutLabelDiv:'Div extra/anno',pause:'Pausa',mutType:'Tipo mutazione',increase:'Aumento',decrease:'Prelievo',resume:'Riprendi',growthThisYear:"crescita quest'anno",perDayShort:'/giorno',currentAcc:'Conto corrente',assets:'Attivi',addAsset:'Aggiungi attivo',editAsset:'Modifica attivo',noAssets:'Nessun attivo',noAssetsSub:'Aggiungi la tua prima fonte',stocks:'Azioni/ETF',realestate:'Immobili',sideproject:'Progetti secondari',ads:'Entrate pubblicitarie',royalties:'Diritti/Contenuti',commodities:'Materie prime',p2p:'Prestiti P2P',other:'Altro passivo',annualIncome:'Reddito annuale',returnPct:'Rendimento %',dividendAmt:'Dividendo annuale',value:'Valore',shares:'Numero di azioni',pricePerShare:'Prezzo per azione',symbol:'Simbolo ticker',incomeMode:'Modalità reddito',byPercent:'Per rendimento %',byAmount:'Per importo',color:'Colore',category:'Categoria',delAssetConfirm:'Eliminare questo attivo?',transfer:'Trasferisci',transferFrom:'Da',transferTo:'A',transferAmount:'Importo',transferConfirm:'Trasferisci',transactions:'Transazioni',noTransactions:'Nessuna transazione',tickerSources:'Fonti ticker live',tickerSourcesDesc:'Scegli quali redditi contano',netWorth:'Patrimonio netto',totalIncome:'Reddito totale',settings:'Impostazioni',settingsLang:'Lingua',settingsCurrency:'Valuta',settingsTheme:'Tema',settingsAccount:'Account',login:'Accedi',register:'Registrati',email:'E-mail',password:'Password',confirmPassword:'Conferma password',forgotPassword:'Password dimenticata?',resetPassword:'Reimposta',resetSent:'E-mail di reimpostazione inviata!',noAccount:'Nessun account?',haveAccount:'Hai già un account?',signUp:'Registrati',signIn:'Accedi',logout:'Esci',skipLogin:'Continua senza account',loginSubtitle:'Sincronizza i tuoi dati',chooseLanguage:'Scegli lingua',chooseCurrency:'Scegli valuta',chooseTheme:'Scegli tema',loggedInAs:'Connesso come',passwordMismatch:'Le password non corrispondono',passwordTooShort:'Almeno 6 caratteri',portfolio:'Portafoglio',positions:'Posizioni',addPosition:'+ Aggiungi posizione',searchTicker:'Cerca ticker...',lookupPrice:'Cerca prezzo',totalValue:'Valore totale',bankAccounts:'Conti bancari',otherAssets:'Altri attivi',ordinalSuffix:'.',months:['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic']}},
+  tr:{flag:'🇹🇷',name:'Türkçe',t:{appName:'Pasif Gelir',powered:'Powered by Swart Financial Focus',live:'Canlı',accounts:'Hesaplar',analytics:'Analiz',liveLabel:'Canlı gelir',perSecond:'saniyede',todayEarned:'Bugün kazanılan',tapTimers:'Zamanlayıcıları göster',hideTimers:'Gizle',timers:'Zamanlayıcılar',addTimer:'+ Ekle',timerName:'Ad',timerPlaceholder:'örn. İş...',startTimer:'Başlat',elapsed:'geçti',addAccount:'Hesap ekle',editAccount:'Düzenle',savings:'Tasarruf',investment:'Yatırım',name:'Ad',balance:'Bakiye',rate:'Faiz %',dividend:'Yıllık temettü',startDate:'Başlangıç tarihi',save:'Kaydet',cancel:'İptal',delete:'Sil',type:'Tür',perDay:'Günlük',perYear:'Yıllık',ytd:'YTD',perHour:'Saatlik',perWeek:'Haftalık',perMonth:'Aylık',noAccounts:'Hesap yok',noAccountsSub:'İlk hesabınızı ekleyin',noTimers:'Zamanlayıcı yok',noTimersSub:'Zamanlayıcı oluşturun',incomeByAcc:'Hesaba göre gelir (€/gün)',monthlyIncome:'Aylık gelir',totalAssets:'Toplam varlıklar',passiveRate:'Pasif gelir yıllık',nameReq:'Lütfen bir ad girin',balReq:'Geçerli bir bakiye girin',rateReq:'Faiz oranı girin',divReq:'Temettü tutarı girin',delAccConfirm:'Bu hesabı sil?',delTimerConfirm:'Zamanlayıcıyı sil?',spaar:'Tasarruf',beleg:'Yatırım',language:'Dil',dagverdeling:'Günlük dağılım',payoutFreq:'Ödeme',weekly:'Haftalık',monthly:'Aylık',annually:'Yıllık',payoutDay:'Gün',payoutDayMonth:'Ayın günü',nextPayout:'Sonraki ödeme',mutations:'Mutasyonlar',addMutation:'+ Mutasyon ekle',inleg:'Ekstra depozito (€)',extraDiv:'Ekstra temettü/yıl (€)',mutationDate:'Tarih',mutationHistory:'Mutasyon geçmişi',noMutations:'Mutasyon yok',balGrowth:'Servet büyümesi',divGrowth:'Temettü büyümesi',mutErrFill:'Depozito veya temettü girin',mutLabelInleg:'Depozito',mutLabelDiv:'Ekstra temettü/yıl',pause:'Duraklat',mutType:'Mutasyon tipi',increase:'Artış',decrease:'Azalış',resume:'Devam et',growthThisYear:'bu yılki büyüme',perDayShort:'/gün',currentAcc:'Cari hesap',assets:'Varlıklar',addAsset:'Varlık ekle',editAsset:'Varlık düzenle',noAssets:'Varlık yok',noAssetsSub:'İlk kaynağınızı ekleyin',stocks:'Hisse/ETF',realestate:'Gayrimenkul',sideproject:'Yan projeler',ads:'Reklam geliri',royalties:'Telif/İçerik',commodities:'Emtialar',p2p:'P2P Krediler',other:'Diğer pasif',annualIncome:'Yıllık gelir',returnPct:'Getiri %',dividendAmt:'Yıllık temettü',value:'Değer',shares:'Hisse sayısı',pricePerShare:'Hisse başına fiyat',symbol:'Ticker sembolü',incomeMode:'Gelir modu',byPercent:'Getiri % ile',byAmount:'Tutar ile',color:'Renk',category:'Kategori',delAssetConfirm:'Bu varlığı sil?',transfer:'Transfer',transferFrom:'Kimden',transferTo:'Kime',transferAmount:'Tutar',transferConfirm:'Transfer et',transactions:'İşlemler',noTransactions:'İşlem yok',tickerSources:'Canlı ticker kaynakları',tickerSourcesDesc:'Hangi gelirlerin sayıldığını seçin',netWorth:'Net değer',totalIncome:'Toplam gelir',settings:'Ayarlar',settingsLang:'Dil',settingsCurrency:'Para birimi',settingsTheme:'Tema',settingsAccount:'Hesap',login:'Giriş yap',register:'Kayıt ol',email:'E-posta',password:'Şifre',confirmPassword:'Şifreyi onayla',forgotPassword:'Şifremi unuttum?',resetPassword:'Sıfırla',resetSent:'Sıfırlama e-postası gönderildi!',noAccount:'Hesabınız yok mu?',haveAccount:'Zaten hesabınız var mı?',signUp:'Kayıt ol',signIn:'Giriş yap',logout:'Çıkış yap',skipLogin:'Hesapsız devam et',loginSubtitle:'Verilerinizi senkronize edin',chooseLanguage:'Dil seçin',chooseCurrency:'Para birimi seçin',chooseTheme:'Tema seçin',loggedInAs:'Olarak giriş yapıldı',passwordMismatch:'Şifreler uyuşmuyor',passwordTooShort:'En az 6 karakter',portfolio:'Portföy',positions:'Pozisyonlar',addPosition:'+ Pozisyon ekle',searchTicker:'Ticker ara...',lookupPrice:'Fiyat ara',totalValue:'Toplam değer',bankAccounts:'Banka hesapları',otherAssets:'Diğer varlıklar',ordinalSuffix:'.',months:['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara']}},
+  ko:{flag:'🇰🇷',name:'한국어',t:{appName:'수동 소득',powered:'Powered by Swart Financial Focus',live:'실시간',accounts:'계좌',analytics:'분석',liveLabel:'실시간 수입',perSecond:'초당',todayEarned:'오늘 수입',tapTimers:'타이머 보기',hideTimers:'숨기기',timers:'타이머',addTimer:'+ 추가',timerName:'이름',timerPlaceholder:'예: 직장...',startTimer:'시작',elapsed:'경과',addAccount:'계좌 추가',editAccount:'편집',savings:'저축',investment:'투자',name:'이름',balance:'잔액',rate:'이자율 %',dividend:'연간 배당금',startDate:'시작일',save:'저장',cancel:'취소',delete:'삭제',type:'유형',perDay:'일별',perYear:'연간',ytd:'연초대비',perHour:'시간당',perWeek:'주간',perMonth:'월간',noAccounts:'계좌 없음',noAccountsSub:'첫 번째 계좌를 추가하세요',noTimers:'타이머 없음',noTimersSub:'타이머 만들기',incomeByAcc:'계좌별 수입 (€/일)',monthlyIncome:'월 수입',totalAssets:'총 자산',passiveRate:'수동 수입 연간',nameReq:'이름을 입력하세요',balReq:'유효한 잔액을 입력하세요',rateReq:'이자율을 입력하세요',divReq:'배당금을 입력하세요',delAccConfirm:'이 계좌를 삭제하시겠습니까?',delTimerConfirm:'타이머를 삭제하시겠습니까?',spaar:'저축',beleg:'투자',language:'언어',dagverdeling:'일별 분배',payoutFreq:'지급',weekly:'주간',monthly:'월간',annually:'연간',payoutDay:'일',payoutDayMonth:'월의 날',nextPayout:'다음 지급',mutations:'변동',addMutation:'+ 변동 추가',inleg:'추가 입금 (€)',extraDiv:'추가 배당금/년 (€)',mutationDate:'날짜',mutationHistory:'변동 내역',noMutations:'변동 없음',balGrowth:'자산 성장',divGrowth:'배당금 성장',mutErrFill:'입금 또는 배당금을 입력하세요',mutLabelInleg:'입금',mutLabelDiv:'추가 배당금/년',pause:'일시정지',mutType:'변동 유형',increase:'증가',decrease:'감소',resume:'재개',growthThisYear:'올해 성장',perDayShort:'/일',currentAcc:'입출금 계좌',assets:'자산',addAsset:'자산 추가',editAsset:'자산 편집',noAssets:'자산 없음',noAssetsSub:'첫 번째 소스를 추가하세요',stocks:'주식/ETF',realestate:'부동산',sideproject:'부업',ads:'광고 수입',royalties:'로열티/콘텐츠',commodities:'상품',p2p:'P2P 대출',other:'기타 수동',annualIncome:'연간 수입',returnPct:'수익률 %',dividendAmt:'연간 배당금',value:'가치',shares:'주식 수',pricePerShare:'주당 가격',symbol:'티커 기호',incomeMode:'수입 모드',byPercent:'수익률 %로',byAmount:'금액으로',color:'색상',category:'카테고리',delAssetConfirm:'이 자산을 삭제하시겠습니까?',transfer:'이체',transferFrom:'보내는 곳',transferTo:'받는 곳',transferAmount:'금액',transferConfirm:'이체',transactions:'거래',noTransactions:'거래 없음',tickerSources:'실시간 티커 소스',tickerSourcesDesc:'어떤 수입이 계산되는지 선택',netWorth:'순자산',totalIncome:'총 수입',settings:'설정',settingsLang:'언어',settingsCurrency:'통화',settingsTheme:'테마',settingsAccount:'계정',login:'로그인',register:'회원가입',email:'이메일',password:'비밀번호',confirmPassword:'비밀번호 확인',forgotPassword:'비밀번호를 잊으셨나요?',resetPassword:'재설정',resetSent:'재설정 이메일 전송됨!',noAccount:'계정이 없나요?',haveAccount:'이미 계정이 있나요?',signUp:'가입',signIn:'로그인',logout:'로그아웃',skipLogin:'계정 없이 계속',loginSubtitle:'데이터를 동기화하세요',chooseLanguage:'언어 선택',chooseCurrency:'통화 선택',chooseTheme:'테마 선택',loggedInAs:'로그인됨',passwordMismatch:'비밀번호가 일치하지 않습니다',passwordTooShort:'최소 6자',portfolio:'포트폴리오',positions:'포지션',addPosition:'+ 포지션 추가',searchTicker:'티커 검색...',lookupPrice:'가격 조회',totalValue:'총 가치',bankAccounts:'은행 계좌',otherAssets:'기타 자산',ordinalSuffix:'.',months:['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월']}},
+  hi:{flag:'🇮🇳',name:'हिन्दी',t:{appName:'निष्क्रिय आय',powered:'Powered by Swart Financial Focus',live:'लाइव',accounts:'खाते',analytics:'विश्लेषण',liveLabel:'लाइव आय',perSecond:'प्रति सेकंड',todayEarned:'आज अर्जित',tapTimers:'टाइमर देखें',hideTimers:'छुपाएं',timers:'टाइमर',addTimer:'+ जोड़ें',timerName:'नाम',timerPlaceholder:'जैसे काम...',startTimer:'शुरू',elapsed:'बीता',addAccount:'खाता जोड़ें',editAccount:'संपादित करें',savings:'बचत',investment:'निवेश',name:'नाम',balance:'शेष',rate:'ब्याज %',dividend:'वार्षिक लाभांश',startDate:'प्रारंभ तिथि',save:'सहेजें',cancel:'रद्द करें',delete:'हटाएं',type:'प्रकार',perDay:'प्रति दिन',perYear:'प्रति वर्ष',ytd:'YTD',perHour:'प्रति घंटा',perWeek:'प्रति सप्ताह',perMonth:'प्रति माह',noAccounts:'कोई खाता नहीं',noAccountsSub:'अपना पहला खाता जोड़ें',noTimers:'कोई टाइमर नहीं',noTimersSub:'टाइमर बनाएं',incomeByAcc:'खाते अनुसार आय (€/दिन)',monthlyIncome:'मासिक आय',totalAssets:'कुल संपत्ति',passiveRate:'निष्क्रिय आय वार्षिक',nameReq:'कृपया नाम दर्ज करें',balReq:'वैध शेष दर्ज करें',rateReq:'ब्याज दर दर्ज करें',divReq:'लाभांश दर्ज करें',delAccConfirm:'यह खाता हटाएं?',delTimerConfirm:'टाइमर हटाएं?',spaar:'बचत',beleg:'निवेश',language:'भाषा',dagverdeling:'दैनिक वितरण',payoutFreq:'भुगतान',weekly:'साप्ताहिक',monthly:'मासिक',annually:'वार्षिक',payoutDay:'दिन',payoutDayMonth:'महीने का दिन',nextPayout:'अगला भुगतान',mutations:'परिवर्तन',addMutation:'+ परिवर्तन जोड़ें',inleg:'अतिरिक्त जमा (€)',extraDiv:'अतिरिक्त लाभांश/वर्ष (€)',mutationDate:'तिथि',mutationHistory:'परिवर्तन इतिहास',noMutations:'कोई परिवर्तन नहीं',balGrowth:'संपत्ति वृद्धि',divGrowth:'लाभांश वृद्धि',mutErrFill:'जमा या लाभांश दर्ज करें',mutLabelInleg:'जमा',mutLabelDiv:'अतिरिक्त लाभांश/वर्ष',pause:'रोकें',mutType:'परिवर्तन प्रकार',increase:'वृद्धि',decrease:'कमी',resume:'जारी रखें',growthThisYear:'इस वर्ष वृद्धि',perDayShort:'/दिन',currentAcc:'चालू खाता',assets:'संपत्ति',addAsset:'संपत्ति जोड़ें',editAsset:'संपत्ति संपादित करें',noAssets:'कोई संपत्ति नहीं',noAssetsSub:'अपना पहला स्रोत जोड़ें',stocks:'शेयर/ETF',realestate:'रियल एस्टेट',sideproject:'साइड प्रोजेक्ट',ads:'विज्ञापन राजस्व',royalties:'रॉयल्टी/सामग्री',commodities:'कमोडिटी',p2p:'P2P ऋण',other:'अन्य निष्क्रिय',annualIncome:'वार्षिक आय',returnPct:'रिटर्न %',dividendAmt:'वार्षिक लाभांश',value:'मूल्य',shares:'शेयर संख्या',pricePerShare:'प्रति शेयर मूल्य',symbol:'टिकर प्रतीक',incomeMode:'आय मोड',byPercent:'रिटर्न % द्वारा',byAmount:'राशि द्वारा',color:'रंग',category:'श्रेणी',delAssetConfirm:'यह संपत्ति हटाएं?',transfer:'ट्रांसफर',transferFrom:'से',transferTo:'को',transferAmount:'राशि',transferConfirm:'ट्रांसफर करें',transactions:'लेनदेन',noTransactions:'कोई लेनदेन नहीं',tickerSources:'लाइव टिकर स्रोत',tickerSourcesDesc:'कौन सी आय गिनी जाए चुनें',netWorth:'कुल मूल्य',totalIncome:'कुल आय',settings:'सेटिंग्स',settingsLang:'भाषा',settingsCurrency:'मुद्रा',settingsTheme:'थीम',settingsAccount:'खाता',login:'लॉगिन',register:'रजिस्टर',email:'ईमेल',password:'पासवर्ड',confirmPassword:'पासवर्ड की पुष्टि करें',forgotPassword:'पासवर्ड भूल गए?',resetPassword:'रीसेट करें',resetSent:'रीसेट ईमेल भेजा गया!',noAccount:'खाता नहीं है?',haveAccount:'पहले से खाता है?',signUp:'साइन अप',signIn:'साइन इन',logout:'लॉगआउट',skipLogin:'बिना खाते के जारी रखें',loginSubtitle:'अपना डेटा सिंक करें',chooseLanguage:'भाषा चुनें',chooseCurrency:'मुद्रा चुनें',chooseTheme:'थीम चुनें',loggedInAs:'इस रूप में लॉगिन',passwordMismatch:'पासवर्ड मेल नहीं खाते',passwordTooShort:'कम से कम 6 अक्षर',portfolio:'पोर्टफोलियो',positions:'पोजीशन',addPosition:'+ पोजीशन जोड़ें',searchTicker:'टिकर खोजें...',lookupPrice:'मूल्य खोजें',totalValue:'कुल मूल्य',bankAccounts:'बैंक खाते',otherAssets:'अन्य संपत्ति',ordinalSuffix:'.',months:['जन','फर','मार','अप्र','मई','जून','जुल','अग','सित','अक्त','नव','दिस']}},
+};
+
+// ═══════════════════════════════════
+//  STATE
+// ═══════════════════════════════════
+
+// ═══════════════════════════════════
+//  CURRENCIES
+// ═══════════════════════════════════
+const CURRENCIES={
+  EUR:{symbol:'€',flag:'🇪🇺',name:'Euro'},
+  USD:{symbol:'$',flag:'🇺🇸',name:'US Dollar'},
+  GBP:{symbol:'£',flag:'🇬🇧',name:'British Pound'},
+  CHF:{symbol:'Fr',flag:'🇨🇭',name:'Swiss Franc'},
+  JPY:{symbol:'¥',flag:'🇯🇵',name:'Japanese Yen'},
+  CAD:{symbol:'C$',flag:'🇨🇦',name:'Canadian Dollar'},
+  AUD:{symbol:'A$',flag:'🇦🇺',name:'Australian Dollar'},
+  SEK:{symbol:'kr',flag:'🇸🇪',name:'Swedish Krona'},
+  NOK:{symbol:'kr',flag:'🇳🇴',name:'Norwegian Krone'},
+  DKK:{symbol:'kr',flag:'🇩🇰',name:'Danish Krone'},
+  NZD:{symbol:'NZ$',flag:'🇳🇿',name:'New Zealand Dollar'},
+  SGD:{symbol:'S$',flag:'🇸🇬',name:'Singapore Dollar'},
+  HKD:{symbol:'HK$',flag:'🇭🇰',name:'Hong Kong Dollar'},
+  CNY:{symbol:'¥',flag:'🇨🇳',name:'Chinese Yuan'},
+  INR:{symbol:'₹',flag:'🇮🇳',name:'Indian Rupee'},
+  BRL:{symbol:'R$',flag:'🇧🇷',name:'Brazilian Real'},
+  MXN:{symbol:'$',flag:'🇲🇽',name:'Mexican Peso'},
+  ZAR:{symbol:'R',flag:'🇿🇦',name:'South African Rand'},
+  TRY:{symbol:'₺',flag:'🇹🇷',name:'Turkish Lira'},
+  KRW:{symbol:'₩',flag:'🇰🇷',name:'South Korean Won'},
+  AED:{symbol:'د.إ',flag:'🇦🇪',name:'UAE Dirham'},
+  SAR:{symbol:'﷼',flag:'🇸🇦',name:'Saudi Riyal'},
+  PLN:{symbol:'zł',flag:'🇵🇱',name:'Polish Zloty'},
+  CZK:{symbol:'Kč',flag:'🇨🇿',name:'Czech Koruna'},
+  HUF:{symbol:'Ft',flag:'🇭🇺',name:'Hungarian Forint'},
+  RON:{symbol:'lei',flag:'🇷🇴',name:'Romanian Leu'},
+  ILS:{symbol:'₪',flag:'🇮🇱',name:'Israeli Shekel'},
+  THB:{symbol:'฿',flag:'🇹🇭',name:'Thai Baht'},
+  MYR:{symbol:'RM',flag:'🇲🇾',name:'Malaysian Ringgit'},
+  IDR:{symbol:'Rp',flag:'🇮🇩',name:'Indonesian Rupiah'},
+  PHP:{symbol:'₱',flag:'🇵🇭',name:'Philippine Peso'},
+};
+const DISP_CURRENCIES=Object.keys(CURRENCIES);
+
+// ═══════════════════════════════════
+//  FIREBASE
+// ═══════════════════════════════════
+const firebaseConfig={apiKey:"AIzaSyCSxxbYKs8w0e23L3brOvd0mEnClHTZGXU",authDomain:"vermogen-tracker.firebaseapp.com",projectId:"vermogen-tracker",storageBucket:"vermogen-tracker.firebasestorage.app",messagingSenderId:"727645600374",appId:"1:727645600374:web:2a67cb8f759298eb3bfd57"};
+firebase.initializeApp(firebaseConfig);const auth=firebase.auth(),db=firebase.firestore();
+async function syncToCloud(){const u=auth.currentUser;if(!u)return;try{await db.collection('users').doc(u.uid).set({accounts:S.accounts,assets:S.assets,timers:S.timers,transactions:S.transactions,tickerSources:S.tickerSources,lang:S.lang,displayCurrency:S.displayCurrency,theme:S.theme,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});}catch(e){}}
+async function loadFromCloud(){const u=auth.currentUser;if(!u)return;try{const doc=await db.collection('users').doc(u.uid).get();if(doc.exists){const d=doc.data();if(d.accounts)S.accounts=d.accounts;if(d.assets)S.assets=d.assets;if(d.timers)S.timers=d.timers;if(d.transactions)S.transactions=d.transactions;if(d.tickerSources)S.tickerSources=d.tickerSources;S.lang=d.lang||S.lang;S.displayCurrency=d.displayCurrency||S.displayCurrency;S.theme=d.theme||S.theme;persist();applyTheme();}}catch(e){}}
+let _syncD=null;function debouncedSync(){if(_syncD)clearTimeout(_syncD);_syncD=setTimeout(syncToCloud,2000);}
+
+// ═══════════════════════════════════
+//  THEMES
+// ═══════════════════════════════════
+const THEMES={dark:{accent:'#c9a84c',accent2:'#e8c97a',bg:'#0d0d14',surf:'#13131e',surf2:'#1a1a2a',txt:'#f0ede8',muted:'rgba(240,237,232,.45)',brd:'rgba(255,255,255,.07)',hover:'rgba(255,255,255,.05)',overlay:'rgba(255,255,255,.04)',gridLine:'rgba(255,255,255,.06)',btnBg:'rgba(255,255,255,.06)',inputBg:'rgba(255,255,255,.06)',progressBg:'rgba(255,255,255,.06)'},light:{accent:'#b5813a',accent2:'#8a5f20',bg:'#f5f2eb',surf:'#ffffff',surf2:'#eee8d8',txt:'#1a1510',muted:'rgba(26,21,16,.5)',brd:'rgba(0,0,0,.1)',hover:'rgba(0,0,0,.04)',overlay:'rgba(0,0,0,.03)',gridLine:'rgba(0,0,0,.06)',btnBg:'rgba(0,0,0,.05)',inputBg:'rgba(0,0,0,.04)',progressBg:'rgba(0,0,0,.08)'}};
+function getEffectiveTheme(){if(S.theme==='auto'){const h=new Date().getHours();return(h>=6&&h<20)?'light':'dark';}return S.theme||'dark';}
+function applyTheme(){const th=THEMES[getEffectiveTheme()]||THEMES.dark;const r=document.documentElement.style;r.setProperty('--gold',th.accent);r.setProperty('--gold2',th.accent2);r.setProperty('--bg',th.bg);r.setProperty('--surf',th.surf);r.setProperty('--surf2',th.surf2);r.setProperty('--txt',th.txt);r.setProperty('--muted',th.muted);r.setProperty('--brd',th.brd);r.setProperty('--hover',th.hover);r.setProperty('--overlay',th.overlay);r.setProperty('--grid-line',th.gridLine);r.setProperty('--btn-bg',th.btnBg);r.setProperty('--input-bg',th.inputBg);r.setProperty('--progress-bg',th.progressBg);document.body.style.background=th.bg;}
+setInterval(()=>{if(S.theme==='auto')applyTheme();},60000);
+
+// ═══════════════════════════════════
+//  FINNHUB API
+// ═══════════════════════════════════
+const FINNHUB_KEY='ct2v3dpr01ql66oo7f10ct2v3dpr01ql66oo7f1g';
+const FINNHUB_BASE='https://finnhub.io/api/v1';
+async function finnhubSearch(query){try{const r=await fetch(FINNHUB_BASE+'/search?q='+encodeURIComponent(query)+'&token='+FINNHUB_KEY,{signal:AbortSignal.timeout(5000)});const d=await r.json();return(d.result||[]).slice(0,8);}catch(e){return[];}}
+async function finnhubQuote(symbol){try{const r=await fetch(FINNHUB_BASE+'/quote?symbol='+encodeURIComponent(symbol)+'&token='+FINNHUB_KEY,{signal:AbortSignal.timeout(5000)});return await r.json();}catch(e){return null;}}
+
+// ═══════════════════════════════════
+//  ASSET CATEGORIES & COLORS
+// ═══════════════════════════════════
+const ASSET_CATS={stocks:{icon:'📈',dc:'#4ecb8d'},realestate:{icon:'🏠',dc:'#e8975b'},sideproject:{icon:'💼',dc:'#e8c97a'},ads:{icon:'📣',dc:'#c9a84c'},royalties:{icon:'✍️',dc:'#7ee8b5'},commodities:{icon:'🌾',dc:'#5b9cf6'},p2p:{icon:'🤝',dc:'#a87cf6'},other:{icon:'💡',dc:'#8a9bb5'}};
+const COLOR_PAL=['#4ecb8d','#5b9cf6','#e8c97a','#c9a84c','#e8975b','#f67c8e','#a87cf6','#7ee8b5','#ff6b6b','#8a9bb5','#5DCAA5','#D85A30','#EF9F27','#639922','#378ADD','#7F77DD'];
+
+const S={
+  lang:localStorage.getItem('pi_lang')||'en',
+  displayCurrency:localStorage.getItem('pi_dcur')||'EUR',
+  theme:localStorage.getItem('pi_theme')||'dark',
+  rates:{},
+  currOpen:false,
+  accounts:JSON.parse(localStorage.getItem('pi_accounts')||'[]'),
+  assets:JSON.parse(localStorage.getItem('pi_assets')||'[]'),
+  timers:JSON.parse(localStorage.getItem('pi_timers')||'[]'),
+  transactions:JSON.parse(localStorage.getItem('pi_transactions')||'[]'),
+  tickerSources:JSON.parse(localStorage.getItem('pi_ticker_sources')||'null'),
+  tab:'live',
+  langOpen:false,
+  liveExp:false,
+  liveShowSources:false,
+  modal:null,
+  editAcc:null,
+  editAsset:null,
+  viewPortfolio:null,
+  analyticsChip:null,
+  analyticsView:null,
+  analyticsSubData:null,
+  analyticsAdWatched:false,
+  goalTarget:parseFloat(localStorage.getItem('pi_goal')||'1000'),
+  form:{},
+  now:Date.now(),
+  authScreen:null,
+  authUser:null,
+  authErr:'',
+  authSuccess:'',
+  authLoading:false,
+  settingsPage:null,
+  showSettings:false,
+};
+if(!S.tickerSources)S.tickerSources={savings:true,realestate_rent:true,dividends:true,realestate_appr:false,stocks_appr:false,sideproject:false,ads:false,royalties:false,commodities:false,p2p:false,other:false};
+
+function t(k){return LANGS[S.lang]?.t?.[k]||LANGS.en.t[k]||k;}
+function persist(){
+  localStorage.setItem('pi_accounts',JSON.stringify(S.accounts));
+  localStorage.setItem('pi_assets',JSON.stringify(S.assets));
+  localStorage.setItem('pi_timers',JSON.stringify(S.timers));
+  localStorage.setItem('pi_transactions',JSON.stringify(S.transactions));
+  localStorage.setItem('pi_ticker_sources',JSON.stringify(S.tickerSources));
+  localStorage.setItem('pi_lang',S.lang);
+  localStorage.setItem('pi_dcur',S.displayCurrency);
+  localStorage.setItem('pi_theme',S.theme);
+  localStorage.setItem('pi_goal',S.goalTarget.toString());
+  debouncedSync();
+}
+
+// ═══════════════════════════════════
+//  MATH
+// ═══════════════════════════════════
+const SPY=365.25*24*3600;
+// Haal huidig saldo op (inclusief mutaties)
+function accBal(a){
+  const muts=a.mutations||[];
+  return parseFloat(a.balance||0)+muts.reduce((s,m)=>s+parseFloat(m.inleg||m.amount||0),0);
+}
+// Haal huidig dividend op: initieel + alle extra mutatie-dividenden opgeteld
+function accDiv(a){
+  const muts=a.mutations||[];
+  return parseFloat(a.dividend||0)+muts.reduce((s,m)=>s+parseFloat(m.dividend||0),0);
+}
+// Yearly income for an account
+function accYrInc(a){
+  if(a.type==='current')return 0;
+  if(a.type==='savings')return accBal(a)*parseFloat(a.rate||0)/100;
+  return accDiv(a);
+}
+// Asset value
+function assetVal(a){
+  if(a.category==='stocks'&&a.positions){return a.positions.reduce((s,p)=>s+parseFloat(p.shares||0)*parseFloat(p.price||0),0);}
+  return parseFloat(a.value||0);
+}
+// Asset yearly income
+function assetYrInc(a){
+  if(a.incomeMode==='%')return assetVal(a)*parseFloat(a.annualReturn||0)/100;
+  return parseFloat(a.annualIncome||0);
+}
+// Net worth (all accounts + all assets)
+function netWorth(){
+  return S.accounts.reduce((s,a)=>s+toDisp(accBal(a),a.currency||'EUR'),0)
+    +S.assets.reduce((s,a)=>s+toDisp(assetVal(a),a.currency||'EUR'),0);
+}
+// Total yearly income (all sources)
+function totalYrInc(){
+  return S.accounts.reduce((s,a)=>s+toDisp(accYrInc(a),a.currency||'EUR'),0)
+    +S.assets.reduce((s,a)=>s+toDisp(assetYrInc(a),a.currency||'EUR'),0);
+}
+function perSec(){
+  // Use ticker sources to determine what counts
+  let total=0;
+  S.accounts.forEach(a=>{
+    if(a.type==='savings'&&S.tickerSources.savings)total+=toDisp(accYrInc(a)/SPY,a.currency||'EUR');
+    else if(a.type==='investment'&&S.tickerSources.dividends)total+=toDisp(accDiv(a)/SPY,a.currency||'EUR');
+  });
+  S.assets.forEach(a=>{
+    const key=a.category;
+    if(S.tickerSources[key])total+=toDisp(assetYrInc(a)/SPY,a.currency||'EUR');
+  });
+  return total;
+}
+function todayE(ps){const n=new Date(),mid=new Date(n.getFullYear(),n.getMonth(),n.getDate());return ps*(n-mid)/1000;}
+function timerE(tm,ps){
+  if(tm.paused) return ps*(tm.elapsed||0)/1000;
+  return ps*((tm.elapsed||0)+(S.now-tm.startedAt))/1000;
+}
+function timerElapsed(tm){
+  if(tm.paused) return tm.elapsed||0;
+  return (tm.elapsed||0)+(S.now-tm.startedAt);
+}
+function totalBal(){return netWorth();}
+function yearlyInc(){return totalYrInc();}
+function ytdE(){const n=new Date(),j=new Date(n.getFullYear(),0,1);return perSec()*(n-j)/1000;}
+function fmtTime(ms){const s=Math.floor(ms/1000),h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sc=s%60;if(h>0)return `${h}u ${m}m`;if(m>0)return `${m}m ${sc}s`;return `${sc}s`;}
+function fmt(n,d=2){return n.toLocaleString('nl-NL',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function fmtE(n,d=2){return '€'+fmt(Math.abs(n),d);}
+function currSym(code){return (CURRENCIES[code]||CURRENCIES.EUR).symbol;}
+function fmtC(n,code='EUR',d=2){return currSym(code)+fmt(Math.abs(n),d);}
+// Convert amount from account currency to display currency
+function toDisp(amount,fromCur='EUR'){
+  if(S.displayCurrency===fromCur)return amount;
+  const r=S.rates;
+  if(!r||Object.keys(r).length<=1){return amount;} // rates not loaded yet, show original
+  const inEUR=fromCur==='EUR'?amount:(amount/(r[fromCur]||1));
+  return S.displayCurrency==='EUR'?inEUR:inEUR*(r[S.displayCurrency]||1);
+}
+function fmtD(n,fromCur='EUR',d=2){return fmtC(toDisp(n,fromCur),S.displayCurrency,d);}
+function cycleCurrency(){
+  const idx=DISP_CURRENCIES.indexOf(S.displayCurrency);
+  S.displayCurrency=DISP_CURRENCIES[(idx+1)%DISP_CURRENCIES.length];
+  persist();render();
+}
+function toggleCurrencyOpen(){S.currOpen=!S.currOpen;render();}
+
+// ── CURRENCY SWITCH POPUP ──
+function showCurrencyPopup(newCode){
+  S.displayCurrency=newCode;
+  S.currOpen=false;
+  persist();
+
+  const cur=CURRENCIES[newCode]||CURRENCIES.EUR;
+  const overlay=document.createElement('div');
+  overlay.className='cur-popup-overlay';
+
+  const popup=document.createElement('div');
+  popup.className='cur-popup';
+
+  // Header
+  const head=document.createElement('div');
+  head.className='cur-popup-head';
+  head.innerHTML=`
+    <div style="font-size:10px;letter-spacing:2px;color:var(--gold);margin-bottom:6px">PORTFOLIO CONVERSION</div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <span style="font-size:28px">${cur.flag}</span>
+      <div>
+        <div style="font-size:18px;font-family:var(--serif);color:var(--txt)">${cur.name}</div>
+        <div style="font-size:11px;color:var(--muted)">${newCode} — Live exchange rate</div>
+      </div>
+    </div>
+    <div style="background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:12px;padding:10px 14px;font-size:11px;color:rgba(240,237,232,.7);line-height:1.6">
+      ⟳ Recalculating your portfolio in <strong style="color:var(--gold)">${newCode}</strong> using live exchange rates...
+    </div>`;
+
+  // Close button
+  const closeBtn=document.createElement('button');
+  closeBtn.className='cur-popup-close';
+  closeBtn.innerHTML='✕';
+  closeBtn.onclick=(e)=>{e.stopPropagation();clearInterval(ticker);overlay.remove();render();};
+  head.appendChild(closeBtn);
+
+  // Banner ad area
+  const adArea=document.createElement('div');
+  adArea.style.cssText='background:var(--surf2);border-top:1px solid var(--brd);padding:10px;display:flex;flex-direction:column;align-items:center;gap:6px';
+
+  const adLabel=document.createElement('div');
+  adLabel.style.cssText='font-size:8px;color:rgba(240,237,232,.2);letter-spacing:2px;text-transform:uppercase';
+  adLabel.textContent='Advertisement';
+
+  const bannerSlot=document.createElement('div');
+  bannerSlot.style.cssText='width:320px;height:50px;background:#000;border-radius:4px;overflow:hidden;position:relative';
+
+  // Load dedicated popup banner (separate tracking)
+  try{
+    if(window.Capacitor?.Plugins?.AdMob){
+      const {AdMob}=window.Capacitor.Plugins;
+      AdMob.showBanner({
+        adId: AD_BANNER_POPUP,
+        adSize:'BANNER',
+        position:'BOTTOM_CENTER',
+        margin:0,
+        isTesting:false,
+      }).catch(()=>{});
+    }
+  }catch(e){}
+
+  const countdown=document.createElement('div');
+  countdown.style.cssText='font-size:9px;color:var(--muted);letter-spacing:1px';
+  let secs=5;
+  countdown.textContent=`Closes in ${secs}s  —  or tap ✕`;
+
+  adArea.appendChild(adLabel);
+  adArea.appendChild(bannerSlot);
+  adArea.appendChild(countdown);
+
+  popup.appendChild(head);
+  popup.appendChild(adArea);
+  overlay.appendChild(popup);
+  document.body.appendChild(overlay);
+
+  // Countdown tick
+  const ticker=setInterval(()=>{
+    secs--;
+    if(secs>0){
+      countdown.textContent=`Closes in ${secs}s  —  or tap ✕`;
+    } else {
+      clearInterval(ticker);
+      overlay.style.opacity='0';
+      overlay.style.transition='opacity .3s';
+      setTimeout(()=>{if(overlay.parentNode){overlay.remove();render();}},300);
+    }
+  },1000);
+
+  // Close on background tap
+  overlay.addEventListener('click',(e)=>{if(e.target===overlay){clearInterval(ticker);overlay.remove();render();}});
+
+  render();
+}
+// ═══════════════════════════════════
+//  EXCHANGE RATES
+// ═══════════════════════════════════
+const RATE_CACHE_KEY='pi_rates_v2';
+const RATE_TS_KEY='pi_rates_ts';
+const RATE_TTL=3600000; // 1 hour cache
+
+function loadCachedRates(){
+  try{
+    const ts=parseInt(localStorage.getItem(RATE_TS_KEY)||'0');
+    const cached=JSON.parse(localStorage.getItem(RATE_CACHE_KEY)||'null');
+    if(cached&&Date.now()-ts<RATE_TTL){S.rates=cached;return true;}
+  }catch(e){}
+  return false;
+}
+
+function saveRates(r){
+  try{
+    localStorage.setItem(RATE_CACHE_KEY,JSON.stringify(r));
+    localStorage.setItem(RATE_TS_KEY,Date.now().toString());
+  }catch(e){}
+}
+
+function showRateToast(msg,done=false){
+  let el=document.getElementById('rate-toast');
+  if(!el){
+    el=document.createElement('div');
+    el.id='rate-toast';
+    el.style.cssText='position:fixed;bottom:calc(var(--ad-h) + 80px);left:50%;transform:translateX(-50%);background:rgba(13,13,20,.95);border:1px solid rgba(201,168,76,.3);color:var(--gold);font-family:var(--mono);font-size:10px;letter-spacing:1px;padding:8px 18px;border-radius:20px;z-index:9999;transition:opacity .4s;pointer-events:none;text-align:center;white-space:nowrap';
+    document.body.appendChild(el);
+  }
+  el.textContent=msg;
+  el.style.opacity='1';
+  if(done){setTimeout(()=>{el.style.opacity='0';setTimeout(()=>el.remove(),400);},2000);}
+}
+
+async function fetchRates(){
+  // Use cached rates first (instant display)
+  const hasCached=loadCachedRates();
+  if(hasCached){render();return;}
+
+  // Show loading toast
+  showRateToast('⟳ Updating exchange rates...');
+
+  const APIS=[
+    async()=>{
+      const r=await fetch('https://api.frankfurter.app/latest?from=EUR',{signal:AbortSignal.timeout(6000)});
+      const d=await r.json();return d.rates;
+    },
+    async()=>{
+      const r=await fetch('https://open.er-api.com/v6/latest/EUR',{signal:AbortSignal.timeout(6000)});
+      const d=await r.json();return d.rates;
+    },
+    async()=>{
+      const r=await fetch('https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/eur.json',{signal:AbortSignal.timeout(6000)});
+      const d=await r.json();
+      // This API returns lowercase keys
+      const rates={};Object.entries(d.eur||{}).forEach(([k,v])=>{rates[k.toUpperCase()]=v;});
+      return rates;
+    },
+  ];
+
+  for(const api of APIS){
+    try{
+      const rates=await api();
+      if(rates&&rates.USD){
+        rates.EUR=1;
+        S.rates=rates;
+        saveRates(rates);
+        showRateToast('✓ Rates updated',true);
+        render();
+        return;
+      }
+    }catch(e){continue;}
+  }
+
+  // All APIs failed — use cache even if stale, or set EUR=1
+  if(!hasCached){
+    S.rates={EUR:1,USD:1.08,GBP:0.86,CHF:0.96,JPY:163,CAD:1.48,AUD:1.65,SEK:11.2,NOK:11.5,DKK:7.46};
+    showRateToast('⚠ Using fallback rates',true);
+    render();
+  } else {
+    showRateToast('⚠ Using cached rates',true);
+  }
+}
+
+// Refresh rates every hour while app is open
+setInterval(()=>{
+  const ts=parseInt(localStorage.getItem(RATE_TS_KEY)||'0');
+  if(Date.now()-ts>RATE_TTL) fetchRates();
+},60000);
+
+// ═══════════════════════════════════
+//  TICK
+// ═══════════════════════════════════
+let _tick=null;
+function startTick(){
+  if(_tick)return;
+  _tick=setInterval(()=>{
+    S.now=Date.now();
+    const ps=perSec();
+    const re=document.getElementById('liveRate');
+    const te=document.getElementById('liveToday');
+    if(re)re.textContent=fmtD(ps,'EUR',6);
+    if(te)te.textContent=fmtD(todayE(ps),'EUR',4);
+    S.timers.forEach(tm=>{
+      const ee=document.getElementById('te_'+tm.id);
+      const el=document.getElementById('tl_'+tm.id);
+      if(ee)ee.textContent=fmtD(timerE(tm,ps),'EUR',4);
+      if(el)el.textContent=(tm.paused?'⏸ ':'')+fmtTime(timerElapsed(tm));
+    });
+  },200);
+}
+function stopTick(){if(_tick){clearInterval(_tick);_tick=null;}}
+
+// ═══════════════════════════════════
+//  ADMOB
+// ═══════════════════════════════════
+const AD_BANNER_BOTTOM   = 'ca-app-pub-2500208892461670/2606092047';
+const AD_BANNER_POPUP    = 'ca-app-pub-2500208892461670/9876945505';
+const AD_INTERSTITIAL    = 'ca-app-pub-2500208892461670/4579340615';
+
+let _interstitialShown = false; // only once per session
+
+function initAdMob(){
+  try{
+    if(!window.Capacitor||!window.Capacitor.Plugins||!window.Capacitor.Plugins.AdMob) return;
+    const {AdMob}=window.Capacitor.Plugins;
+    AdMob.initialize().then(()=>{
+
+      // ── Bottom banner ──
+      AdMob.showBanner({
+        adId: AD_BANNER_BOTTOM,
+        adSize: 'BANNER',
+        position: 'BOTTOM_CENTER',
+        margin: 0,
+        isTesting: false,
+      }).catch(e=>console.warn('AdMob banner error:',e));
+
+      // ── Interstitial after 60s (once per session) ──
+      setTimeout(()=>{
+        if(_interstitialShown) return;
+        AdMob.prepareInterstitial({adId: AD_INTERSTITIAL, isTesting: false})
+          .then(()=>AdMob.showInterstitial())
+          .then(()=>{_interstitialShown=true;})
+          .catch(()=>{});
+      }, 60000);
+
+    }).catch(e=>console.warn('AdMob init error:',e));
+  }catch(e){console.warn('AdMob:',e);}
+}
+
+// ═══════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════
+function render(){
+  const app=document.getElementById('app');
+  app.innerHTML='';
+  if(S.authScreen&&S.authScreen!=='app'){
+    app.appendChild(buildAuthScreen());
+    return;
+  }
+  app.appendChild(buildApp());
+  startTick();
+  if(S.modal)app.appendChild(buildModal());
+}
+
+// ── CURRENCY BTN ──
+function buildCurrencyBtn(){
+  const dcur=S.displayCurrency;
+  const cur=CURRENCIES[dcur]||CURRENCIES.EUR;
+  const wrap=document.createElement('div');
+  wrap.style.position='relative';
+  const btn=document.createElement('button');
+  btn.className='lang-pill';
+  btn.innerHTML=`<span style="font-size:16px">${cur.flag}</span> <span style="font-size:9px;opacity:.6">▾</span>`;
+  btn.onclick=()=>{S.currOpen=!S.currOpen;S.langOpen=false;render();};
+  wrap.appendChild(btn);
+  if(S.currOpen){
+    const box=document.createElement('div');
+    box.className='lang-slide-wrap';
+    box.style.right='0';
+    const inner=document.createElement('div');
+    inner.className='lang-menu-box';
+    inner.style.minWidth='180px';
+    DISP_CURRENCIES.forEach(code=>{
+      const c=CURRENCIES[code];
+      const b=document.createElement('button');
+      b.className='lang-btn'+(dcur===code?' active':'');
+      b.innerHTML=`<span class="flag">${c.flag}</span><span>${code} — ${c.name}</span>`;
+      b.onclick=()=>{if(code!==S.displayCurrency){showCurrencyPopup(code);}else{S.currOpen=false;render();}};
+      inner.appendChild(b);
+    });
+    box.appendChild(inner);
+    wrap.appendChild(box);
+    setTimeout(()=>{
+      document.addEventListener('click',function h(){S.currOpen=false;render();document.removeEventListener('click',h);},{once:true});
+    },50);
+  }
+  return wrap;
+}
+
+// ── LANG BTN ──
+function buildLangBtn(){
+  const lg=LANGS[S.lang];
+  const wrap=document.createElement('div');
+  wrap.style.position='relative';
+  const btn=document.createElement('button');
+  btn.className='lang-pill';
+  btn.innerHTML=`<span style="font-size:16px">${lg.flag}</span> <span style="font-size:9px;opacity:.6">▾</span>`;
+  btn.onclick=()=>{S.langOpen=!S.langOpen;S.currOpen=false;render();};
+  wrap.appendChild(btn);
+  if(S.langOpen){
+    const box=document.createElement('div');
+    box.className='lang-slide-wrap';
+    const inner=document.createElement('div');
+    inner.className='lang-menu-box';
+    Object.entries(LANGS).forEach(([code,l])=>{
+      const b=document.createElement('button');
+      b.className='lang-btn'+(S.lang===code?' active':'');
+      b.innerHTML=`<span class="flag">${l.flag}</span><span>${l.name}</span>`;
+      b.onclick=()=>{S.lang=code;S.langOpen=false;persist();render();};
+      inner.appendChild(b);
+    });
+    box.appendChild(inner);
+    wrap.appendChild(box);
+    setTimeout(()=>{
+      document.addEventListener('click',function h(){S.langOpen=false;render();document.removeEventListener('click',h);},{once:true});
+    },50);
+  }
+  return wrap;
+}
+
+// ── APP SHELL ──
+function buildApp(){
+  const el=document.createElement('div');
+  el.style.cssText='display:flex;flex-direction:column;height:100%;position:relative';
+  // Settings page takes over (triggered by gear icon)
+  if(S.settingsPage!==undefined&&S.settingsPage!==null||S.showSettings){
+    el.appendChild(buildHeader());
+    const scr=document.createElement('div');scr.className='screen fade';
+    scr.appendChild(buildSettingsTab());
+    el.appendChild(scr);
+    el.appendChild(buildTabBar());
+    return el;
+  }
+  // Portfolio view
+  if(S.viewPortfolio){
+    el.appendChild(buildHeader());
+    const scr=document.createElement('div');scr.className='screen fade';
+    scr.appendChild(buildPortfolioView());
+    el.appendChild(scr);
+    el.appendChild(buildTabBar());
+    return el;
+  }
+  el.appendChild(buildHeader());
+  const scr=document.createElement('div');
+  scr.className='screen fade';
+  if(S.tab==='live')scr.appendChild(buildLiveTab());
+  else if(S.tab==='accounts')scr.appendChild(buildAccTab());
+  else if(S.tab==='assets')scr.appendChild(buildAssetsTab());
+  else if(S.tab==='analytics')scr.appendChild(buildAnalyticsTab());
+  el.appendChild(scr);
+  el.appendChild(buildTabBar());
+  return el;
+}
+
+// ── HEADER ──
+function buildHeader(){
+  const yi=yearlyInc(),tb=totalBal();
+  const el=document.createElement('div');
+  el.className='header';
+  const top=document.createElement('div');
+  top.className='header-top';
+  const left=document.createElement('div');
+  const dcur=S.displayCurrency;
+  const rateTs=localStorage.getItem(RATE_TS_KEY);
+  const rateAge=rateTs?Math.round((Date.now()-parseInt(rateTs))/60000):null;
+  const rateInfo=dcur==='EUR'?'':(rateAge!==null?`<span style="font-size:8px;color:rgba(240,237,232,.25);margin-left:4px">rate ${rateAge<60?rateAge+'m':'${Math.round(rateAge/60)}h'} ago</span>`:'<span style="font-size:8px;color:rgba(240,237,232,.25);margin-left:4px">loading rates...</span>');
+  left.innerHTML=`<div class="app-label">${t('appName')}</div>
+    <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+      <div class="total-bal">${fmtD(tb,'EUR',2)}</div>${rateInfo}
+    </div>
+    <div class="header-sub" style="color:var(--gold);opacity:.7;letter-spacing:2px">SWART FINANCIËLE FOCUS</div>`;
+  const right=document.createElement('div');
+  right.className='header-right';
+  right.style.cssText='display:flex;flex-direction:row;align-items:flex-start;gap:6px;position:relative';
+  const gearBtn=document.createElement('button');
+  gearBtn.className='gear-btn';
+  gearBtn.textContent='⚙';
+  gearBtn.onclick=()=>{S.showSettings=!S.showSettings;S.settingsPage=null;render();};
+  right.appendChild(gearBtn);
+  top.appendChild(left);
+  top.appendChild(right);
+  el.appendChild(top);
+  const chips=document.createElement('div');
+  chips.className='chips';
+  const chipDefs=[
+    {key:'perUur',   label:t('perHour'), val:fmtD(yi/365.25/24,'EUR',4)},
+    {key:'perDag',   label:t('perDay'),  val:fmtD(yi/365.25,'EUR',2)},
+    {key:'perWeek',  label:t('perWeek'), val:fmtD(yi/52.18,'EUR',2)},
+    {key:'perMaand', label:t('perMonth'),val:fmtD(yi/12,'EUR',2)},
+    {key:'perJaar',  label:t('perYear'), val:fmtD(yi,'EUR',2)},
+  ];
+  chipDefs.forEach(cd=>{
+    const btn=document.createElement('button');
+    btn.className='chip';
+    btn.style.cssText='border:none;text-align:left;background:var(--hover);';
+    btn.innerHTML=`<div class="chip-label">${cd.label}</div><div class="chip-val">${cd.val}</div>`;
+    btn.onclick=()=>{S.tab='analytics';S.analyticsChip=cd.key;render();};
+    chips.appendChild(btn);
+  });
+  el.appendChild(chips);
+  return el;
+}
+
+// ── TABBAR ──
+function buildTabBar(){
+  const el=document.createElement('div');
+  el.className='tabbar';
+  [{key:'live',icon:'⚡',label:t('live')},{key:'accounts',icon:'🏦',label:t('accounts')},{key:'assets',icon:'📈',label:t('assets')},{key:'analytics',icon:'📊',label:t('analytics')}].forEach(tab=>{
+    const b=document.createElement('button');
+    b.className='tab'+(S.tab===tab.key?' active':'');
+    b.innerHTML=`<span class="tab-icon">${tab.icon}</span>${tab.label}`;
+    b.onclick=()=>{S.tab=tab.key;S.settingsPage=null;S.viewPortfolio=null;render();};
+    el.appendChild(b);
+  });
+  return el;
+}
+
+// ── LIVE TAB ──
+function buildLiveTab(){
+  const ps=perSec(),td=todayE(ps);
+  const el=document.createElement('div');
+  const card=document.createElement('div');
+  card.className='live-card';
+  card.innerHTML=`
+    <div class="live-badge"><span class="live-dot"></span>${t('liveLabel')}</div>
+    <div class="live-rate-num" id="liveRate">${fmtD(ps,'EUR',6)}</div>
+    <div class="live-rate-unit">${t('perSecond')}</div>
+    <div class="live-today-row">
+      <div><div class="live-today-label">${t('todayEarned')}</div><div class="live-today-val" id="liveToday">${fmtD(td,'EUR',4)}</div></div>
+    </div>
+  `;
+  const expBtn=document.createElement('button');
+  expBtn.className='expand-btn';
+  expBtn.innerHTML=`<span>${S.liveExp?'▲':'▼'}</span> ${S.liveExp?t('hideTimers'):t('tapTimers')}`;
+  expBtn.onclick=()=>{S.liveExp=!S.liveExp;render();};
+  card.appendChild(expBtn);
+
+  // Ticker sources button
+  const srcBtn=document.createElement('button');
+  srcBtn.className='expand-btn';
+  srcBtn.style.cssText='margin-top:8px;font-size:10px;opacity:.7';
+  srcBtn.innerHTML=`⚙ ${t('tickerSources')}`;
+  srcBtn.onclick=()=>{S.modal='tickerSources';render();};
+  card.appendChild(srcBtn);
+
+  el.appendChild(card);
+
+  if(S.liveExp){
+    const tw=document.createElement('div');
+    tw.className='timers-wrap';
+    const hd=document.createElement('div');
+    hd.className='section-hd';
+    hd.textContent=t('timers');
+    tw.appendChild(hd);
+    if(S.timers.length===0){
+      const empty=document.createElement('div');
+      empty.className='empty';
+      empty.innerHTML=`<div class="empty-icon">⏱</div><div class="empty-txt">${t('noTimers')}</div><div class="empty-sub">${t('noTimersSub')}</div>`;
+      tw.appendChild(empty);
+    } else {
+      S.timers.forEach(tm=>{
+        const tc=document.createElement('div');
+        tc.className='timer-card';
+        tc.style.cssText='cursor:pointer';
+        // Left side - klikbaar voor bewerken
+        const leftBtn=document.createElement('button');
+        leftBtn.style.cssText='background:none;border:none;text-align:left;padding:0;flex:1;';
+        leftBtn.innerHTML=`<div class="timer-name">${tm.name} <span style="font-size:10px;color:var(--muted);opacity:.6">✎</span></div><div class="timer-elapsed" id="tl_${tm.id}">${(tm.paused?'⏸ ':'')+fmtTime(timerElapsed(tm))}</div>`;
+        leftBtn.onclick=()=>{S.modal='editTimer';S.form={tid:tm.id,tn:tm.name};render();};
+        const right=document.createElement('div');
+        right.className='timer-right';
+        const earned=document.createElement('div');
+        earned.className='timer-earned';
+        earned.id='te_'+tm.id;
+        earned.textContent=fmtD(timerE(tm,ps),'EUR',4);
+        // Pause/resume button
+        const pauseBtn=document.createElement('button');
+        pauseBtn.style.cssText='background:none;border:none;font-size:18px;padding:2px 6px;color:var(--muted);line-height:1';
+        pauseBtn.textContent=tm.paused?'▶':'⏸';
+        pauseBtn.title=tm.paused?t('resume'):t('pause');
+        pauseBtn.onclick=e=>{
+          e.stopPropagation();
+          const idx=S.timers.findIndex(x=>x.id===tm.id);
+          if(tm.paused){
+            // Resume: reset startedAt, keep elapsed
+            S.timers[idx]={...S.timers[idx],paused:false,startedAt:Date.now()};
+          } else {
+            // Pause: save elapsed, remove startedAt
+            S.timers[idx]={...S.timers[idx],paused:true,elapsed:(tm.elapsed||0)+(Date.now()-tm.startedAt)};
+          }
+          persist();render();
+        };
+        const del=document.createElement('button');
+        del.className='timer-del';
+        del.textContent='×';
+        del.onclick=e=>{
+          e.stopPropagation();
+          if(!confirm(t('delTimerConfirm')))return;
+          S.timers=S.timers.filter(x=>x.id!==tm.id);
+          persist();render();
+        };
+        right.appendChild(earned);
+        right.appendChild(pauseBtn);
+        right.appendChild(del);
+        tc.appendChild(leftBtn);
+        tc.appendChild(right);
+        tw.appendChild(tc);
+      });
+    }
+    const addBtn=document.createElement('button');
+    addBtn.className='add-timer-btn';
+    addBtn.textContent=t('addTimer');
+    addBtn.onclick=()=>{S.modal='addTimer';S.form={};render();};
+    tw.appendChild(addBtn);
+    const pw=document.createElement('div');
+    pw.className='powered';
+    pw.textContent=t('powered');
+    tw.appendChild(pw);
+    el.appendChild(tw);
+  } else {
+    const pw=document.createElement('div');
+    pw.className='powered';
+    pw.style.paddingTop='24px';
+    pw.textContent=t('powered');
+    el.appendChild(pw);
+  }
+  return el;
+}
+
+// ── ACCOUNTS TAB ──
+function buildAccTab(){
+  const el=document.createElement('div');
+  const tb=totalBal();
+  if(S.accounts.length===0){
+    const empty=document.createElement('div');
+    empty.className='empty';
+    empty.innerHTML=`<div class="empty-icon">🏦</div><div class="empty-txt">${t('noAccounts')}</div><div class="empty-sub">${t('noAccountsSub')}</div>`;
+    el.appendChild(empty);
+  } else {
+    const list=document.createElement('div');
+    list.className='acc-list';
+    S.accounts.forEach(acc=>{
+      const color=acc.color||(acc.type==='savings'?'var(--grn)':'var(--blu)');
+      const curBal=accBal(acc), curDiv=accDiv(acc);
+      const yr=accYrInc(acc);
+      const pct=tb>0?(toDisp(curBal,acc.currency||'EUR')/tb*100):0;
+      const mutCount=(acc.mutations||[]).length;
+
+      // ── Kaart (klikbaar voor bewerken) ──
+      const card=document.createElement('button');
+      card.className='acc-card';
+      card.style.cssText='width:100%;text-align:left;background:var(--surf);border:1px solid var(--brd);border-radius:20px 20px 0 0;padding:20px;display:block;border-bottom:none;margin-bottom:0;cursor:pointer';
+      card.innerHTML=`
+        <div class="acc-top">
+          <div class="acc-id">
+            <div class="acc-dot" style="background:${color}"></div>
+            <div>
+              <div class="acc-name">${acc.name}</div>
+              <div class="acc-meta">${acc.type==='savings'?t('spaar'):acc.type==='current'?t('currentAcc'):t('beleg')} · ${pct.toFixed(1)}%</div>
+            </div>
+          </div>
+          <div class="acc-bal" style="color:${color}">${fmtC(curBal,acc.currency||'EUR',2)}</div>
+        </div>
+        <div class="acc-bottom">
+          ${acc.type==='current'?`
+            <div class="acc-stat"><div class="acc-stat-label">${t('balance')}</div><div class="acc-stat-val" style="color:${color}">${fmtC(curBal,acc.currency||'EUR',2)}</div></div>
+          `:`
+          <div class="acc-stat"><div class="acc-stat-label">${t('perYear')}</div><div class="acc-stat-val" style="color:${color}">${fmtC(yr,acc.currency||'EUR',2)}</div></div>
+          <div class="acc-stat"><div class="acc-stat-label">${t('perDay')}</div><div class="acc-stat-val" style="color:${color}">${fmtC(yr/365.25,acc.currency||'EUR',2)}</div></div>
+          <div class="acc-stat"><div class="acc-stat-label">${acc.type==='savings'?t('rate'):t('dividend').split(' ')[0]}</div><div class="acc-stat-val" style="color:${color}">${acc.type==='savings'?acc.rate+'%':fmtC(curDiv,acc.currency||'EUR',2)}</div></div>
+          `}
+        </div>
+      `;
+      card.onclick=()=>{S.editAcc=acc;S.modal='editAccount';S.form={...acc};render();};
+
+      // ── Knoppen rij ──
+      const btnRow=document.createElement('div');
+      btnRow.style.cssText='display:flex;gap:0;border:1px solid var(--brd);border-top:none;border-radius:0 0 20px 20px;overflow:hidden;margin-bottom:0';
+
+      const mutBtn=document.createElement('button');
+      mutBtn.style.cssText=`flex:1;padding:10px 8px;background:var(--overlay);border:none;border-right:1px solid var(--brd);color:${color};font-size:11px;font-family:var(--mono);display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer`;
+      mutBtn.innerHTML=`<span style="font-size:13px;line-height:1">+</span> ${t('mutations')}${mutCount>0?' ('+mutCount+')':''}`;
+      mutBtn.onclick=()=>{S.editAcc=acc;S.modal='viewMutations';S.form={};render();};
+
+      const adjBtn=document.createElement('button');
+      adjBtn.style.cssText=`flex:1;padding:10px 8px;background:var(--overlay);border:none;border-right:1px solid var(--brd);color:var(--gold);font-size:11px;font-family:var(--mono);display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer`;
+      adjBtn.innerHTML=`<span style="font-size:12px">✎</span> ${t('adjustValues')||'Adjust'}`;
+      adjBtn.onclick=()=>{S.editAcc=acc;S.modal='adjustValues';S.form={adjDate:new Date().toISOString().split('T')[0],adjBal:'',adjDiv:''};render();};
+
+      const trBtn=document.createElement('button');
+      trBtn.style.cssText=`flex:1;padding:10px 8px;background:var(--overlay);border:none;color:var(--muted);font-size:11px;font-family:var(--mono);display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer`;
+      trBtn.innerHTML=`<span style="font-size:12px">↔</span> ${t('transfer')}`;
+      trBtn.onclick=()=>{S.editAcc=acc;S.modal='transfer';S.form={};render();};
+
+      btnRow.appendChild(mutBtn);
+      btnRow.appendChild(adjBtn);
+      btnRow.appendChild(trBtn);
+
+      // ── Wrapper ──
+      const wrap=document.createElement('div');
+      wrap.style.cssText='margin-bottom:14px';
+      wrap.appendChild(card);
+      wrap.appendChild(btnRow);
+      list.appendChild(wrap);
+    });
+    const pw=document.createElement('div');pw.className='powered';pw.textContent=t('powered');
+    list.appendChild(pw);
+    el.appendChild(list);
+  }
+  const fab=document.createElement('button');
+  fab.className='fab';
+  fab.textContent='+';
+  fab.onclick=()=>{S.modal='addAccount';S.form={type:'savings',color:'#4ecb8d'};render();};
+  el.appendChild(fab);
+  return el;
+}
+
+// ── ANALYTICS TAB ──
+function buildAnalyticsTab(){
+  const el=document.createElement('div');
+  el.className='analytics';
+
+  // ── AD PAYWALL: once per day, show interstitial ad with 10s delay ──
+  const lastAd=localStorage.getItem('pi_lastAdDay');
+  const today=new Date().toISOString().split('T')[0];
+  if(lastAd!==today&&!S.analyticsAdWatched){
+    const aw=document.createElement('div');
+    aw.style.cssText='display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:32px 24px;text-align:center';
+    aw.innerHTML=`<div style="width:72px;height:72px;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;margin-bottom:20px">📊</div>
+      <div style="font-size:20px;color:var(--txt);margin-bottom:8px;font-family:var(--serif)">${t('analytics')}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:28px;max-width:260px;line-height:1.8">Watch one ad for full day access to analytics.</div>
+      <button id="watchAdBtn" style="width:100%;max-width:280px;padding:15px;background:var(--gold);color:var(--bg);border:none;border-radius:14px;font-size:13px;font-weight:500;font-family:var(--mono);cursor:pointer">▶ Watch ad</button>
+      <div id="adCountdown" style="font-size:11px;color:var(--muted);margin-top:12px;display:none">Analytics loading in <span id="adTimer">10</span>s...</div>`;
+    el.appendChild(aw);
+    setTimeout(()=>{
+      const btn=document.getElementById('watchAdBtn');
+      if(btn)btn.onclick=()=>{
+        // Show interstitial ad
+        try{
+          if(window.Capacitor?.Plugins?.AdMob){
+            const A=window.Capacitor.Plugins.AdMob;
+            A.prepareInterstitial({adId:AD_INTERSTITIAL,isTesting:false}).then(()=>A.showInterstitial()).catch(()=>{});
+          }
+        }catch(e){}
+        // Start 10s countdown then unlock
+        btn.style.display='none';
+        const cdEl=document.getElementById('adCountdown');
+        const tmEl=document.getElementById('adTimer');
+        if(cdEl)cdEl.style.display='block';
+        let secs=10;
+        const iv=setInterval(()=>{
+          secs--;
+          if(tmEl)tmEl.textContent=secs;
+          if(secs<=0){
+            clearInterval(iv);
+            S.analyticsAdWatched=true;
+            localStorage.setItem('pi_lastAdDay',today);
+            render();
+          }
+        },1000);
+      };
+    },10);
+    return el;
+  }
+
+  if(S.accounts.length===0&&S.assets.length===0){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">📊</div><div class="empty-txt">${t('noAccounts')}</div><div class="empty-sub">${t('noAccountsSub')}</div></div>`;
+    return el;
+  }
+  const yi=yearlyInc(),tb=totalBal();
+  const av=S.analyticsView||'overview';
+
+  // ── BACK BUTTON helper ──
+  function backBtn(label,target){
+    const b=document.createElement('button');
+    b.style.cssText='display:flex;align-items:center;gap:8px;background:none;border:none;color:var(--muted);font-size:12px;padding:16px 16px 4px;font-family:var(--mono);cursor:pointer';
+    b.innerHTML='← '+label;
+    b.onclick=()=>{S.analyticsView=target;S.analyticsSubData=null;render();};
+    return b;
+  }
+
+  // ── SVG LINE CHART helper ──
+  function buildLineChart(pts,colorHex,labelFn,titleStr,fmtFn){
+    if(!pts||pts.length<1)return null;
+    const maxV=Math.max(...pts.map(p=>p.v),0.01);
+    const W=Math.max(300,pts.length*44+60),H=160,pL=58,pR=16,pT=16,pB=28;
+    const pW=W-pL-pR,pH=H-pT-pB;
+    const px=i=>pL+(pts.length>1?i/(pts.length-1):0.5)*pW;
+    const py=v=>pT+pH-(v/maxV)*pH;
+    const yT=[0,0.25,0.5,0.75,1].map(f=>({y:pT+pH*(1-f),v:maxV*f}));
+    const coords=pts.map((p,i)=>`${px(i).toFixed(1)},${py(p.v).toFixed(1)}`);
+    const gradId='ag_'+Math.random().toString(36).slice(2,7);
+    const card=document.createElement('div');
+    card.className='chart-card';
+    card.innerHTML=`<div class="chart-title">${titleStr}</div>
+      <div class="chart-svg-wrap">
+        <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+          <defs><linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="${colorHex}" stop-opacity=".25"/>
+            <stop offset="100%" stop-color="${colorHex}" stop-opacity=".01"/>
+          </linearGradient></defs>
+          ${yT.map(tk=>`<line x1="${pL}" y1="${tk.y.toFixed(1)}" x2="${W-pR}" y2="${tk.y.toFixed(1)}" stroke="var(--grid-line)" stroke-width="1"/>
+            <text x="${(pL-6).toFixed(1)}" y="${(tk.y+4).toFixed(1)}" text-anchor="end" font-size="9" fill="rgba(240,237,232,.3)" font-family="DM Mono,monospace">${fmtFn(tk.v)}</text>`).join('')}
+          <path d="M ${px(0).toFixed(1)},${(pT+pH).toFixed(1)} L ${coords.join(' L ')} L ${px(pts.length-1).toFixed(1)},${(pT+pH).toFixed(1)} Z" fill="url(#${gradId})"/>
+          <path d="M ${coords.join(' L ')}" fill="none" stroke="${colorHex}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+          ${pts.map((p,i)=>`
+            <circle cx="${px(i).toFixed(1)}" cy="${py(p.v).toFixed(1)}" r="3.5" fill="${colorHex}"/>
+            <text x="${px(i).toFixed(1)}" y="${(H-8).toFixed(1)}" text-anchor="middle" font-size="9" fill="rgba(240,237,232,.35)" font-family="DM Mono,monospace">${labelFn(p,i)}</text>
+            ${i===pts.length-1?`<rect x="${(px(i)-32).toFixed(1)}" y="${(py(p.v)-22).toFixed(1)}" width="64" height="16" rx="4" fill="${colorHex}22"/><text x="${px(i).toFixed(1)}" y="${(py(p.v)-10).toFixed(1)}" text-anchor="middle" font-size="9" fill="${colorHex}" font-family="DM Mono,monospace">${fmtFn(p.v)}</text>`:''}
+          `).join('')}
+        </svg>
+      </div>`;
+    return card;
+  }
+
+  // ── CLICKABLE CARD helper ──
+  function clickCard(innerHTML,onclick){
+    const card=document.createElement('div');
+    card.className='chart-card';
+    card.style.cssText='cursor:pointer;position:relative';
+    card.innerHTML=innerHTML+`<div style="position:absolute;top:12px;right:14px;font-size:14px;color:rgba(240,237,232,.2)">›</div>`;
+    card.onclick=onclick;
+    return card;
+  }
+
+  // ══════════════════════════════════
+  //  VIEWS
+  // ══════════════════════════════════
+
+  // ── VIEW: INCOME DETAIL (per period) ──
+  if(av==='income'){
+    const chipDividers={perUur:365.25*24,perDag:365.25,perWeek:52.18,perMaand:12,perJaar:1};
+    const chipLabels={perUur:t('perHour'),perDag:t('perDay'),perWeek:t('perWeek'),perMaand:t('perMonth'),perJaar:t('perYear')};
+    const period=S.analyticsSubData||'perDag';
+    const div=chipDividers[period];
+    const label=chipLabels[period];
+    const val=yi/div;
+
+    el.appendChild(backBtn(t('analytics'),'overview'));
+
+    // Period selector
+    const sel=document.createElement('div');
+    sel.style.cssText='display:flex;gap:6px;padding:0 16px 12px;overflow-x:auto;scrollbar-width:none';
+    Object.entries(chipLabels).forEach(([k,l])=>{
+      const b=document.createElement('button');
+      const active=period===k;
+      b.style.cssText=`padding:6px 14px;border-radius:20px;font-size:11px;font-family:var(--mono);cursor:pointer;white-space:nowrap;border:1px solid ${active?'var(--gold)':'var(--brd)'};background:${active?'rgba(201,168,76,.15)':'rgba(255,255,255,.04)'};color:${active?'var(--gold)':'var(--muted)'}`;
+      b.textContent=l;
+      b.onclick=()=>{S.analyticsSubData=k;render();};
+      sel.appendChild(b);
+    });
+    el.appendChild(sel);
+
+    // Hero value
+    const hero=document.createElement('div');
+    hero.className='chart-card';
+    hero.innerHTML=`<div class="chart-title">${label}</div>
+      <div style="font-size:36px;font-family:var(--serif);color:var(--grn);margin-bottom:4px">${fmtD(val,'EUR',4)}</div>
+      <div style="font-size:11px;color:var(--muted)">${label.toLowerCase()} ${t('passiveRate').toLowerCase()}</div>`;
+    el.appendChild(hero);
+
+    // Growth chart monthly
+    const now=new Date(),numM=now.getMonth()+1;
+    const mL=t('months');
+    const pts=[];
+    for(let m=0;m<numM;m++){
+      const mid=new Date(now.getFullYear(),m,15);
+      const v=S.accounts.reduce((s,a)=>{
+        const sd=a.startDate?new Date(a.startDate):new Date(now.getFullYear(),0,1);
+        if(sd<=mid){return s+(accYrInc(a))/div;}
+        return s;
+      },0);
+      pts.push({m,v});
+    }
+    if(pts.length>0)pts[pts.length-1].v=val;
+    const lc=buildLineChart(pts,'#4ecb8d',
+      (p)=>mL[p.m],
+      `${label} — ${t('growthThisYear')}`,
+      v=>`${fmtD(v,'EUR',2)}`
+    );
+    if(lc)el.appendChild(lc);
+
+    // Per account bars
+    const barData=[
+      ...S.accounts.map(a=>({
+        name:a.name,
+        val:toDisp(accYrInc(a),a.currency||'EUR')/div,
+        color:a.color||(a.type==='savings'?'#4ecb8d':'#5b9cf6'),
+      })),
+      ...S.assets.map(a=>({
+        name:a.name,
+        val:toDisp(assetYrInc(a),a.currency||'EUR')/div,
+        color:a.color||(ASSET_CATS[a.category]||ASSET_CATS.other).dc,
+      }))
+    ].filter(d=>d.val>0).sort((a,b)=>b.val-a.val);
+    const maxB=barData.length?Math.max(...barData.map(d=>d.val)):1;
+    const barCard=document.createElement('div');
+    barCard.className='chart-card';
+    barCard.innerHTML=`<div class="chart-title">Per rekening — ${label.toLowerCase()}</div>`
+      +barData.map(d=>`<div class="bar-row"><div class="bar-label">${d.name}</div><div class="bar-track"><div class="bar-fill" style="width:${(d.val/maxB*100).toFixed(1)}%;background:${d.color}"></div></div><div class="bar-val" style="color:${d.color}">${fmtD(d.val,'EUR',2)}</div></div>`).join('');
+    el.appendChild(barCard);
+  }
+
+  // ── VIEW: GROWTH (balance over time) ──
+  else if(av==='growth'){
+    el.appendChild(backBtn(t('analytics'),'overview'));
+    const period=S.analyticsSubData||'monthly';
+
+    // Period toggle
+    const tog=document.createElement('div');
+    tog.style.cssText='display:flex;background:var(--hover);border-radius:12px;padding:3px;margin:0 16px 12px;gap:3px';
+    [['monthly','Monthly'],['weekly','Weekly'],['daily','Daily']].forEach(([k,l])=>{
+      const b=document.createElement('button');
+      const active=period===k;
+      b.style.cssText=`flex:1;padding:7px;border-radius:9px;font-size:11px;font-family:var(--mono);border:none;cursor:pointer;background:${active?'var(--surf)':'none'};color:${active?'var(--txt)':'var(--muted)'}`;
+      b.textContent=l;
+      b.onclick=()=>{S.analyticsSubData=k;render();};
+      tog.appendChild(b);
+    });
+    el.appendChild(tog);
+
+    const now=new Date();
+    let pts=[];
+    if(period==='monthly'){
+      const numM=now.getMonth()+1;
+      const mL=t('months');
+      for(let m=0;m<numM;m++){
+        const mid=new Date(now.getFullYear(),m,15);
+        const v=S.accounts.reduce((s,a)=>{
+          const sd=a.startDate?new Date(a.startDate):new Date(now.getFullYear(),0,1);
+          if(sd<=mid)return s+toDisp(accBal(a),a.currency||'EUR');
+          return s;
+        },0);
+        pts.push({v,label:mL[m]});
+      }
+      pts[pts.length-1].v=tb;
+      const lc=buildLineChart(pts,'#5b9cf6',p=>p.label,'Totaal vermogen — maandelijks',v=>fmtD(v,'EUR',0));
+      if(lc)el.appendChild(lc);
+    } else if(period==='weekly'){
+      const numW=Math.ceil((now-new Date(now.getFullYear(),0,1))/604800000);
+      for(let w=0;w<Math.min(numW,52);w++){
+        const d=new Date(now.getFullYear(),0,1+w*7);
+        const v=S.accounts.reduce((s,a)=>{
+          const sd=a.startDate?new Date(a.startDate):new Date(now.getFullYear(),0,1);
+          if(sd<=d)return s+toDisp(accBal(a),a.currency||'EUR');
+          return s;
+        },0);
+        pts.push({v,label:`W${w+1}`});
+      }
+      pts[pts.length-1].v=tb;
+      const lc=buildLineChart(pts,'#5b9cf6',p=>p.label,'Totaal vermogen — wekelijks',v=>fmtD(v,'EUR',0));
+      if(lc)el.appendChild(lc);
+    } else {
+      // Daily - last 30 days
+      for(let d=29;d>=0;d--){
+        const day=new Date(now-d*86400000);
+        const dayStr=day.toISOString().split('T')[0];
+        const label=`${day.getDate()}/${day.getMonth()+1}`;
+        const v=S.accounts.reduce((s,a)=>{
+          const sd=a.startDate?new Date(a.startDate):new Date(now.getFullYear(),0,1);
+          if(sd<=day)return s+toDisp(accBal(a),a.currency||'EUR');
+          return s;
+        },0);
+        pts.push({v,label});
+      }
+      const lc=buildLineChart(pts,'#5b9cf6',(p,i)=>i%5===0?p.label:'','Totaal vermogen — afgelopen 30 dagen',v=>fmtD(v,'EUR',0));
+      if(lc)el.appendChild(lc);
+    }
+
+    // YTD income
+    const incCard=document.createElement('div');
+    incCard.className='chart-card';
+    const ytd=ytdE();
+    incCard.innerHTML=`<div class="chart-title">Inkomen dit jaar</div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:4px">
+        <div><div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">YTD</div><div style="font-size:22px;font-family:var(--serif);color:var(--grn)">${fmtD(ytd,'EUR',2)}</div></div>
+        <div><div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">${t('perDay')}</div><div style="font-size:22px;font-family:var(--serif);color:var(--grn)">${fmtD(yi/365.25,'EUR',2)}</div></div>
+        <div><div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">${t('perYear')}</div><div style="font-size:22px;font-family:var(--serif);color:var(--gold)">${fmtD(yi,'EUR',2)}</div></div>
+      </div>`;
+    el.appendChild(incCard);
+  }
+
+  // ── VIEW: PROJECTION ──
+  else if(av==='projection'){
+    el.appendChild(backBtn(t('analytics'),'overview'));
+    const goal=S.goalTarget||1000;
+    const perMonth=yi/12;
+    const pct=perMonth>0?(perMonth/goal*100):0;
+
+    const goalCard=document.createElement('div');
+    goalCard.className='chart-card';
+    goalCard.innerHTML=`<div class="chart-title">Maandelijks inkomen doel</div>
+      <div style="margin:12px 0 8px">
+        <input id="goalInput" type="number" inputmode="decimal" value="${goal}"
+          style="width:100%;background:var(--surf2);border:1px solid var(--brd);border-radius:12px;padding:10px 14px;color:var(--txt);font-family:var(--serif);font-size:22px">
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:14px">Stel jouw doel per maand in</div>
+      <div style="background:var(--btn-bg);border-radius:8px;height:10px;overflow:hidden;margin-bottom:8px">
+        <div style="height:100%;width:${Math.min(pct,100).toFixed(1)}%;background:${pct>=100?'var(--grn)':'var(--gold)'};border-radius:8px;transition:width .4s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px">
+        <span style="color:var(--grn)">${fmtD(perMonth,'EUR',2)}/mnd huidig</span>
+        <span style="color:${pct>=100?'var(--grn)':'var(--muted)'}">${pct.toFixed(1)}%</span>
+      </div>`;
+    el.appendChild(goalCard);
+    goalCard.querySelector('#goalInput').oninput=(e)=>{S.goalTarget=parseFloat(e.target.value)||1000;persist();render();};
+
+    // ── Income breakdown by source toward goal ──
+    const breakdownCard=document.createElement('div');
+    breakdownCard.className='chart-card';
+    const sources=[];
+    // Savings accounts
+    const savMonthly=S.accounts.filter(a=>a.type==='savings').reduce((s,a)=>s+toDisp(accYrInc(a),a.currency||'EUR'),0)/12;
+    if(savMonthly>0)sources.push({name:t('savings'),val:savMonthly,color:'#4ecb8d'});
+    // Investment accounts (dividends)
+    const divMonthly=S.accounts.filter(a=>a.type==='investment').reduce((s,a)=>s+toDisp(accYrInc(a),a.currency||'EUR'),0)/12;
+    if(divMonthly>0)sources.push({name:t('investment')+' ('+t('dividend').split(' ')[0]+')',val:divMonthly,color:'#5b9cf6'});
+    // Assets per category
+    const assetByCat={};
+    S.assets.forEach(a=>{
+      const cat=a.category||'other';
+      const monthly=toDisp(assetYrInc(a),a.currency||'EUR')/12;
+      if(monthly>0){
+        if(!assetByCat[cat])assetByCat[cat]={name:t(cat),val:0,color:a.color||(ASSET_CATS[cat]||ASSET_CATS.other).dc};
+        assetByCat[cat].val+=monthly;
+      }
+    });
+    Object.values(assetByCat).forEach(s=>sources.push(s));
+    sources.sort((a,b)=>b.val-a.val);
+
+    // Build stacked bar showing contribution of each source to goal
+    let breakdownHTML=`<div class="chart-title">Uitsplitsing per bron</div>`;
+    if(sources.length>0){
+      // Stacked bar
+      breakdownHTML+=`<div style="display:flex;border-radius:8px;overflow:hidden;height:28px;margin:10px 0 14px;gap:1px">`;
+      sources.forEach(src=>{
+        const srcPct=Math.max(src.val/goal*100,1);
+        breakdownHTML+=`<div style="width:${srcPct.toFixed(1)}%;background:${src.color};min-width:3px" title="${src.name}: ${fmtD(src.val,'EUR',2)}/mnd"></div>`;
+      });
+      // Remaining gap
+      const totalSrcPct=sources.reduce((s,src)=>s+src.val/goal*100,0);
+      if(totalSrcPct<100){
+        breakdownHTML+=`<div style="flex:1;background:var(--surf2)"></div>`;
+      }
+      breakdownHTML+=`</div>`;
+      // Per source rows
+      sources.forEach(src=>{
+        const srcPct=Math.min(src.val/goal*100,100);
+        breakdownHTML+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--brd)">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:10px;height:10px;border-radius:50%;background:${src.color};flex-shrink:0"></div>
+            <span style="font-size:12px;color:var(--txt)">${src.name}</span>
+          </div>
+          <div style="text-align:right">
+            <span style="font-size:13px;color:${src.color};font-family:var(--serif)">${fmtD(src.val,'EUR',2)}</span>
+            <span style="font-size:10px;color:var(--muted)">/mnd</span>
+            <span style="font-size:10px;color:var(--muted);margin-left:6px">(${srcPct.toFixed(1)}%)</span>
+          </div>
+        </div>`;
+      });
+      // Total row
+      breakdownHTML+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;margin-top:4px">
+        <span style="font-size:12px;color:var(--muted);font-weight:500">Totaal</span>
+        <div>
+          <span style="font-size:14px;color:var(--grn);font-family:var(--serif)">${fmtD(perMonth,'EUR',2)}</span>
+          <span style="font-size:10px;color:var(--muted)">/mnd</span>
+          <span style="font-size:10px;color:var(--muted);margin-left:6px">van ${fmtD(goal,'EUR',0)}</span>
+        </div>
+      </div>`;
+    } else {
+      breakdownHTML+=`<div style="font-size:12px;color:var(--muted);padding:12px 0">Voeg inkomstenbronnen toe om de uitsplitsing te zien.</div>`;
+    }
+    breakdownCard.innerHTML=breakdownHTML;
+    el.appendChild(breakdownCard);
+
+    // Months to goal
+    const remaining=goal-perMonth;
+    const projCard=document.createElement('div');
+    projCard.className='chart-card';
+    if(pct>=100){
+      projCard.innerHTML=`<div class="chart-title">Doel bereikt! 🎉</div>
+        <div style="font-size:14px;color:var(--grn);margin-top:8px">Je passief inkomen van ${fmtD(perMonth,'EUR',2)}/mnd overstijgt je doel van ${fmtD(goal,'EUR',2)}/mnd.</div>`;
+    } else if(yi<=0){
+      projCard.innerHTML=`<div class="chart-title">Projectie</div><div style="font-size:13px;color:var(--muted);margin-top:8px">Voeg rekeningen toe om een projectie te zien.</div>`;
+    } else {
+      // Simulate months needed (compound via yearly income staying constant)
+      const monthsNeeded=Math.ceil((goal/(yi/12)-1)*12);
+      projCard.innerHTML=`<div class="chart-title">Projectie</div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:8px">
+          <div>
+            <div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">Nog nodig</div>
+            <div style="font-size:20px;font-family:var(--serif);color:var(--red)">${fmtD(remaining,'EUR',2)}/mnd</div>
+          </div>
+          <div>
+            <div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">Extra kapitaal nodig</div>
+            <div style="font-size:20px;font-family:var(--serif);color:var(--blu)">${fmtD(remaining*12/Math.max(parseFloat(S.accounts[0]?.rate||5)/100,0.01),'EUR',0)}</div>
+          </div>
+        </div>`;
+    }
+    el.appendChild(projCard);
+
+    // Income milestones
+    const milestones=[100,250,500,1000,2500,5000].filter(m=>m>=perMonth*0.5);
+    const msCard=document.createElement('div');
+    msCard.className='chart-card';
+    msCard.innerHTML=`<div class="chart-title">Mijlpalen</div>`+
+      milestones.slice(0,5).map(m=>{
+        const p=Math.min(perMonth/m*100,100);
+        const done=p>=100;
+        return `<div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+            <span style="color:${done?'var(--grn)':'var(--txt)'}">${done?'✓ ':''} ${fmtD(m,'EUR',0)}/mnd</span>
+            <span style="color:var(--muted)">${p.toFixed(0)}%</span>
+          </div>
+          <div style="background:var(--btn-bg);border-radius:4px;height:5px;overflow:hidden">
+            <div style="height:100%;width:${p.toFixed(1)}%;background:${done?'var(--grn)':'var(--gold)'};border-radius:4px"></div>
+          </div>
+        </div>`;
+      }).join('');
+    el.appendChild(msCard);
+  }
+
+  // ── VIEW: ACCOUNT DETAIL ──
+  else if(av==='accountDetail'){
+    const acc=S.analyticsSubData;
+    if(!acc){S.analyticsView='overview';render();return el;}
+    el.appendChild(backBtn(t('analytics'),'overview'));
+
+    const isSavings=acc.type==='savings';
+    const color=isSavings?'var(--grn)':'var(--blu)';
+    const curBal=accBal(acc),curDiv=accDiv(acc);
+    const yr=isSavings?curBal*parseFloat(acc.rate)/100:curDiv;
+
+    // Hero
+    const hero=document.createElement('div');
+    hero.className='chart-card';
+    hero.innerHTML=`<div class="chart-title">${acc.name}</div>
+      <div style="font-size:32px;font-family:var(--serif);color:${color};margin-bottom:8px">${fmtC(curBal,acc.currency||'EUR',2)}</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px">
+        <div><span style="color:var(--muted)">${t('perYear')}: </span><span style="color:${color}">${fmtC(yr,acc.currency||'EUR',2)}</span></div>
+        <div><span style="color:var(--muted)">${t('perDay')}: </span><span style="color:${color}">${fmtC(yr/365.25,acc.currency||'EUR',4)}</span></div>
+        ${isSavings?`<div><span style="color:var(--muted)">${t('rate')}: </span><span style="color:var(--grn)">${acc.rate}%</span></div>`:''}
+        ${acc.currency&&acc.currency!=='EUR'?`<div><span style="color:var(--muted)">≈ </span><span style="color:var(--gold)">${fmtD(toDisp(yr,acc.currency||'EUR'),'EUR',2)}/jr</span></div>`:''}
+      </div>`;
+    el.appendChild(hero);
+
+    // Mutation history chart if available
+    const muts=(acc.mutations||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+    if(muts.length>0){
+      let runBal=parseFloat(acc.balance||0);
+      const balPts=[{v:runBal,label:acc.startDate?acc.startDate.slice(5):'Start'}];
+      muts.forEach(m=>{runBal+=parseFloat(m.inleg||0);balPts.push({v:runBal,label:m.date.slice(5)});});
+      const lc=buildLineChart(balPts,'#5b9cf6',p=>p.label,'Saldo verloop',v=>fmtC(v,acc.currency||'EUR',0));
+      if(lc)el.appendChild(lc);
+    }
+
+    // Stats breakdown
+    const statsCard=document.createElement('div');
+    statsCard.className='chart-card';
+    statsCard.innerHTML=`<div class="chart-title">Statistieken</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px">
+        ${[
+          [t('perHour'), fmtC(yr/365.25/24,acc.currency||'EUR',6)],
+          [t('perDay'), fmtC(yr/365.25,acc.currency||'EUR',4)],
+          [t('perWeek'), fmtC(yr/52.18,acc.currency||'EUR',2)],
+          [t('perMonth'), fmtC(yr/12,acc.currency||'EUR',2)],
+          [t('perYear'), fmtC(yr,acc.currency||'EUR',2)],
+          ['YTD', fmtC(yr/365.25*(new Date()-new Date(new Date().getFullYear(),0,1))/86400000,acc.currency||'EUR',2)],
+        ].map(([l,v])=>`<div style="background:var(--surf2);border-radius:12px;padding:10px 12px">
+          <div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px">${l}</div>
+          <div style="font-size:14px;color:${color};font-family:var(--serif)">${v}</div>
+        </div>`).join('')}
+      </div>`;
+    el.appendChild(statsCard);
+  }
+
+  // ── VIEW: DIVERSIFICATION ──
+  else if(av==='diversification'){
+    el.appendChild(backBtn(t('analytics'),'overview'));
+
+    const totalYr=yi;
+    const savings=S.accounts.filter(a=>a.type==='savings');
+    const investments=S.accounts.filter(a=>a.type==='investment');
+    const savInc=savings.reduce((s,a)=>s+toDisp(accYrInc(a),a.currency||'EUR'),0);
+    const invInc=investments.reduce((s,a)=>s+toDisp(accYrInc(a),a.currency||'EUR'),0)
+      +S.assets.reduce((s,a)=>s+toDisp(assetYrInc(a),a.currency||'EUR'),0);
+
+    // Split bar
+    const splitCard=document.createElement('div');
+    splitCard.className='chart-card';
+    const savPct=totalYr>0?(savInc/totalYr*100):50;
+    const invPct=100-savPct;
+    splitCard.innerHTML=`<div class="chart-title">${t('dagverdeling')}</div>
+      <div style="display:flex;border-radius:10px;overflow:hidden;height:32px;margin:12px 0 8px;gap:2px">
+        <div style="width:${savPct.toFixed(1)}%;background:#4ecb8d;display:flex;align-items:center;justify-content:center;font-size:11px;color:#0d0d14;font-family:var(--mono)">${savPct.toFixed(0)}%</div>
+        <div style="flex:1;background:#5b9cf6;display:flex;align-items:center;justify-content:center;font-size:11px;color:#0d0d14;font-family:var(--mono)">${invPct.toFixed(0)}%</div>
+      </div>
+      <div style="display:flex;gap:16px;font-size:11px">
+        <span style="color:#4ecb8d">● ${t('savings')} ${fmtD(savInc,'EUR',2)}/jr</span>
+        <span style="color:#5b9cf6">● ${t('investment')} ${fmtD(invInc,'EUR',2)}/jr</span>
+      </div>`;
+    el.appendChild(splitCard);
+
+    // Per account breakdown
+    const accCard=document.createElement('div');
+    accCard.className='chart-card';
+    const allAcc=S.accounts.map(a=>{
+      const inc=toDisp(accYrInc(a),a.currency||'EUR');
+      return {name:a.name,inc,pct:totalYr>0?(inc/totalYr*100):0,color:a.type==='savings'?'#4ecb8d':'#5b9cf6'};
+    }).sort((a,b)=>b.inc-a.inc);
+    accCard.innerHTML=`<div class="chart-title">Per rekening</div>`+
+      allAcc.map(a=>`<div class="bar-row" style="margin-bottom:10px">
+        <div class="bar-label" style="color:${a.color}">${a.name}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${a.pct.toFixed(1)}%;background:${a.color}"></div></div>
+        <div class="bar-val" style="color:${a.color}">${fmtD(a.inc,'EUR',2)}</div>
+      </div>`).join('');
+    el.appendChild(accCard);
+
+    // Currency distribution
+    const byCur={};
+    S.accounts.forEach(a=>{
+      const cur=a.currency||'EUR';
+      const inc=toDisp(accYrInc(a),cur);
+      byCur[cur]=(byCur[cur]||0)+inc;
+    });
+    if(Object.keys(byCur).length>1){
+      const curCard=document.createElement('div');
+      curCard.className='chart-card';
+      const totalCur=Object.values(byCur).reduce((s,v)=>s+v,0);
+      curCard.innerHTML=`<div class="chart-title">Per valuta (omgerekend)</div>`+
+        Object.entries(byCur).sort((a,b)=>b[1]-a[1]).map(([cur,val])=>{
+          const pct=totalCur>0?(val/totalCur*100):0;
+          const cinfo=CURRENCIES[cur]||{flag:'',symbol:cur};
+          return `<div class="bar-row"><div class="bar-label">${cinfo.flag} ${cur}</div><div class="bar-track"><div class="bar-fill" style="width:${pct.toFixed(1)}%;background:var(--gold)"></div></div><div class="bar-val" style="color:var(--gold)">${fmtD(val,'EUR',2)}</div></div>`;
+        }).join('');
+      el.appendChild(curCard);
+    }
+  }
+
+  // ── VIEW: OVERVIEW (main) ──
+  else {
+    // KPI row — clickable
+    const kpiCard=clickCard(`<div class="chart-title">${t('totalAssets')}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px">
+        <div class="stat-block"><div class="stat-block-label">${t('totalAssets')}</div><div class="stat-block-val">${fmtD(tb,'EUR',2)}</div></div>
+        <div class="stat-block"><div class="stat-block-label">${t('ytd')}</div><div class="stat-block-val" style="color:var(--grn)">${fmtD(ytdE(),'EUR',2)}</div></div>
+        <div class="stat-block"><div class="stat-block-label">${t('perDay')}</div><div class="stat-block-val" style="color:var(--grn)">${fmtD(yi/365.25,'EUR',2)}</div></div>
+        <div class="stat-block"><div class="stat-block-label">${t('passiveRate')}</div><div class="stat-block-val" style="color:var(--gold)">${fmtD(yi,'EUR',2)}</div></div>
+      </div>`,
+      ()=>{S.analyticsView='growth';S.analyticsSubData='monthly';render();}
+    );
+    el.appendChild(kpiCard);
+
+    // Income card — clickable
+    const incCard=clickCard(`<div class="chart-title">${t('passiveRate')}</div>
+      <div style="font-size:28px;font-family:var(--serif);color:var(--grn);margin:6px 0 2px">${fmtD(yi/12,'EUR',2)}<span style="font-size:14px;color:var(--muted)">/mnd</span></div>
+      <div style="font-size:11px;color:var(--muted)">${fmtD(yi/365.25,'EUR',4)}/dag · ${fmtD(yi,'EUR',2)}/jr</div>`,
+      ()=>{S.analyticsView='income';S.analyticsSubData='perDag';render();}
+    );
+    el.appendChild(incCard);
+
+    // Diversification — clickable
+    const savInc=S.accounts.filter(a=>a.type==='savings').reduce((s,a)=>s+toDisp(accYrInc(a),a.currency||'EUR'),0);
+    const invInc=S.accounts.filter(a=>a.type==='investment').reduce((s,a)=>s+toDisp(accYrInc(a),a.currency||'EUR'),0)
+      +S.assets.reduce((s,a)=>s+toDisp(assetYrInc(a),a.currency||'EUR'),0);
+    const savPct=yi>0?(savInc/yi*100):50;
+    const divCard=clickCard(`<div class="chart-title">${t('dagverdeling')}</div>
+      <div style="display:flex;border-radius:8px;overflow:hidden;height:24px;margin:10px 0 8px;gap:2px">
+        <div style="width:${savPct.toFixed(1)}%;background:#4ecb8d"></div>
+        <div style="flex:1;background:#5b9cf6"></div>
+      </div>
+      <div style="display:flex;gap:16px;font-size:11px">
+        <span style="color:#4ecb8d">● ${t('savings')} ${savPct.toFixed(0)}%</span>
+        <span style="color:#5b9cf6">● ${t('investment')} ${(100-savPct).toFixed(0)}%</span>
+      </div>`,
+      ()=>{S.analyticsView='diversification';S.analyticsSubData=null;render();}
+    );
+    el.appendChild(divCard);
+
+    // Goal / Projection — clickable
+    const perMonth=yi/12;
+    const goal=S.goalTarget||1000;
+    const goalPct=Math.min(perMonth/goal*100,100);
+    // Mini source breakdown for goal card
+    const savM=S.accounts.filter(a=>a.type==='savings').reduce((s,a)=>s+toDisp(accYrInc(a),a.currency||'EUR'),0)/12;
+    const divM=S.accounts.filter(a=>a.type==='investment').reduce((s,a)=>s+toDisp(accYrInc(a),a.currency||'EUR'),0)/12;
+    const assM=S.assets.reduce((s,a)=>s+toDisp(assetYrInc(a),a.currency||'EUR'),0)/12;
+    const goalCard=clickCard(`<div class="chart-title">Doel voortgang</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 6px">
+        <span style="font-size:18px;font-family:var(--serif);color:var(--gold)">${fmtD(perMonth,'EUR',2)}<span style="font-size:12px;color:var(--muted)">/mnd</span></span>
+        <span style="font-size:12px;color:var(--muted)">doel: ${fmtD(goal,'EUR',0)}</span>
+      </div>
+      <div style="display:flex;border-radius:6px;overflow:hidden;height:8px;gap:1px">
+        ${savM>0?`<div style="width:${(savM/goal*100).toFixed(1)}%;background:#4ecb8d"></div>`:''}
+        ${divM>0?`<div style="width:${(divM/goal*100).toFixed(1)}%;background:#5b9cf6"></div>`:''}
+        ${assM>0?`<div style="width:${(assM/goal*100).toFixed(1)}%;background:#e8c97a"></div>`:''}
+        <div style="flex:1;background:var(--surf2)"></div>
+      </div>
+      <div style="display:flex;gap:10px;font-size:9px;color:var(--muted);margin-top:6px;flex-wrap:wrap">
+        ${savM>0?`<span style="color:#4ecb8d">● ${t('savings')} ${fmtD(savM,'EUR',2)}</span>`:''}
+        ${divM>0?`<span style="color:#5b9cf6">● ${t('investment')} ${fmtD(divM,'EUR',2)}</span>`:''}
+        ${assM>0?`<span style="color:#e8c97a">● ${t('assets')} ${fmtD(assM,'EUR',2)}</span>`:''}
+        <span>${goalPct.toFixed(1)}%</span>
+      </div>`,
+      ()=>{S.analyticsView='projection';render();}
+    );
+    el.appendChild(goalCard);
+
+    // Per account — clickable cards
+    const accTitle=document.createElement('div');
+    accTitle.style.cssText='font-size:9px;color:var(--muted);letter-spacing:2.5px;text-transform:uppercase;padding:4px 16px 8px';
+    accTitle.textContent='Rekeningen';
+    el.appendChild(accTitle);
+
+    S.accounts.forEach(acc=>{
+      const isSavings=acc.type==='savings';
+      const color=acc.color||(isSavings?'#4ecb8d':'#5b9cf6');
+      const yr=toDisp(accYrInc(acc),acc.currency||'EUR');
+      const card=clickCard(`<div style="display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-size:13px;color:var(--txt);margin-bottom:3px">${acc.name}</div>
+          <div style="font-size:10px;color:var(--muted)">${isSavings?acc.rate+'%':''} ${acc.currency&&acc.currency!=='EUR'?acc.currency:''}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:16px;font-family:var(--serif);color:${color}">${fmtD(yr,'EUR',2)}/jr</div>
+          <div style="font-size:11px;color:var(--muted)">${fmtD(yr/365.25,'EUR',4)}/dag</div>
+        </div>
+      </div>`,
+        ()=>{S.analyticsView='accountDetail';S.analyticsSubData=acc;render();}
+      );
+      el.appendChild(card);
+    });
+
+    // Also show assets in analytics
+    if(S.assets.length>0){
+      const assetTitle=document.createElement('div');
+      assetTitle.style.cssText='font-size:9px;color:var(--muted);letter-spacing:2.5px;text-transform:uppercase;padding:4px 16px 8px';
+      assetTitle.textContent=t('otherAssets');
+      el.appendChild(assetTitle);
+      S.assets.forEach(asset=>{
+        const cat=ASSET_CATS[asset.category]||ASSET_CATS.other;
+        const color=asset.color||cat.dc;
+        const yr=toDisp(assetYrInc(asset),asset.currency||'EUR');
+        const card=clickCard(`<div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div>
+            <div style="font-size:13px;color:var(--txt);margin-bottom:3px">${asset.name}</div>
+            <div style="font-size:10px;color:var(--muted)">${cat.icon} ${t(asset.category)}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:16px;font-family:var(--serif);color:${color}">${fmtD(yr,'EUR',2)}/jr</div>
+            <div style="font-size:11px;color:var(--muted)">${fmtD(yr/365.25,'EUR',4)}/dag</div>
+          </div>
+        </div>`,()=>{});
+        el.appendChild(card);
+      });
+    }
+
+    const pw=document.createElement('div');pw.className='powered';pw.textContent=t('powered');
+    el.appendChild(pw);
+  }
+
+  return el;
+}
+
+// ── MODAL ──
+function buildModal(){
+  const ov=document.createElement('div');
+  ov.className='modal-overlay';
+  // Geen backdrop-klik om te sluiten — voorkomt sluiten bij toetsenbord wegklikken
+  const m=document.createElement('div');
+  m.className='modal';
+  m.onclick=e=>e.stopPropagation();
+  if(S.modal==='addAccount'||S.modal==='editAccount')m.appendChild(buildAccForm());
+  else if(S.modal==='addTimer'||S.modal==='editTimer')m.appendChild(buildTimerForm());
+  else if(S.modal==='addMutation'||S.modal==='viewMutations')m.appendChild(buildMutationModal());
+  else if(S.modal==='adjustValues')m.appendChild(buildAdjustModal());
+  else if(S.modal==='transfer')m.appendChild(buildTransferForm());
+  else if(S.modal==='addAsset'||S.modal==='editAsset')m.appendChild(buildAssetForm());
+  else if(S.modal==='viewAssetMutations'||S.modal==='addAssetMutation')m.appendChild(buildAssetMutationModal());
+  else if(S.modal==='addPosition')m.appendChild(buildAddPositionForm());
+  else if(S.modal==='tickerSources')m.appendChild(buildTickerSourcesModal());
+  ov.appendChild(m);
+  return ov;
+}
+
+function snapshotAccForm(el){
+  const v=id=>el.querySelector(id)?.value;
+  if(v('#fN')!==undefined) S.form.name=v('#fN');
+  if(v('#fB')!==undefined) S.form.balance=v('#fB');
+  if(v('#fR')!==undefined) S.form.rate=v('#fR');
+  if(v('#fD')!==undefined) S.form.dividend=v('#fD');
+  if(v('#fDt')!==undefined) S.form.startDate=v('#fDt');
+  if(v('#fPD')!==undefined) S.form.payoutDay=parseInt(v('#fPD'))||1;
+  S.form.currency=el.querySelector('#fCur')?.value||'EUR';
+}
+
+function buildAccForm(){
+  const isEdit=S.modal==='editAccount';
+  const tp=S.form.type||'savings';
+  const el=document.createElement('div');
+  el.innerHTML=`
+    <div class="modal-title">${isEdit?t('editAccount'):t('addAccount')}</div>
+    <div class="field"><label>${t('type')}</label>
+      <div class="type-btns">
+        <button class="type-btn${tp==='current'?' active':''}" id="tpCur">${t('currentAcc')}</button>
+        <button class="type-btn${tp==='savings'?' active':''}" id="tpSav">${t('savings')}</button>
+        <button class="type-btn${tp==='investment'?' active':''}" id="tpInv">${t('investment')}</button>
+      </div>
+    </div>
+    <div class="field"><label>${t('name')}</label><input id="fN" type="text" placeholder="${tp==='savings'?t('savings'):tp==='current'?t('currentAcc'):t('investment')}..." value="${S.form.name||''}"></div>
+    <div class="field"><label>${t('balance')} (${currSym(S.form.currency||'EUR')})</label><input id="fB" type="number" inputmode="decimal" placeholder="10000" value="${S.form.balance||''}"></div>
+    ${tp==='savings'?`
+      <div class="field"><label>${t('rate')}</label><input id="fR" type="number" inputmode="decimal" step="0.01" placeholder="2.5" value="${S.form.rate||''}"></div>
+      <div class="field"><label>Currency</label>
+          <select id="fCur" style="width:100%;background:var(--surf2);border:1px solid var(--brd);border-radius:12px;padding:12px;color:var(--txt);font-family:var(--mono);font-size:12px">
+            ${Object.entries(CURRENCIES).map(([k,v])=>`<option value="${k}"${(S.form.currency||'EUR')===k?' selected':''}>${v.flag} ${k} — ${v.name}</option>`).join('')}
+          </select></div>
+        <div class="field"><label>${t('payoutFreq')}</label>
+        <div class="type-btns">
+          <button class="type-btn${(S.form.payoutFreq||'monthly')==='weekly'?' active':''}" id="pfW">${t('weekly')}</button>
+          <button class="type-btn${(S.form.payoutFreq||'monthly')==='monthly'?' active':''}" id="pfM">${t('monthly')}</button>
+          <button class="type-btn${(S.form.payoutFreq||'monthly')==='annually'?' active':''}" id="pfA">${t('annually')}</button>
+        </div>
+      </div>
+      ${(S.form.payoutFreq||'monthly')==='weekly'?`
+        <div class="field"><label>${t('payoutDay')}</label>
+          <select id="fPD">
+            ${['Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag','Zondag'].map((d,i)=>
+              '<option value="'+(i+1)+'"'+(((S.form.payoutDay||1)==(i+1))?' selected':'')+'>'+d+'</option>').join('')}
+          </select>
+        </div>`
+      :(S.form.payoutFreq||'monthly')==='monthly'?`
+        <div class="field"><label>${t('payoutDayMonth')}</label>
+          <select id="fPD">
+            ${Array.from({length:28},(_,i)=>'<option value="'+(i+1)+'"'+((S.form.payoutDay||1)==(i+1)?' selected':'')+'>'+(i+1)+t('ordinalSuffix')+'</option>').join('')}
+          </select>
+        </div>`
+      :''}
+    `:`${tp==='investment'?`<div class="field"><label>${t('dividend')} (€)</label><input id="fD" type="number" inputmode="decimal" placeholder="1200" value="${S.form.dividend||''}"></div>`:''}`}
+    <div class="field"><label>${t('startDate')}</label><input id="fDt" type="date" value="${S.form.startDate||new Date().toISOString().split('T')[0]}"></div>
+    <div id="cpSlot"></div>
+    ${S.form.err?`<div class="err-msg">${S.form.err}</div>`:''}
+    <div class="btn-row">
+      <button class="btn-sec" id="canBtn">${t('cancel')}</button>
+      ${isEdit?`<button class="btn-sec btn-danger" id="delBtn">${t('delete')}</button>`:''}
+      <button class="btn-primary" id="savBtn">${t('save')}</button>
+    </div>
+  `;
+  // Color picker
+  const cpSlot=el.querySelector('#cpSlot');
+  if(cpSlot){
+    const cpField=document.createElement('div');cpField.className='field';
+    cpField.innerHTML='<label>'+t('color')+'</label>';
+    const cpRow=document.createElement('div');cpRow.className='color-pick-row';
+    COLOR_PAL.forEach(c=>{
+      const d=document.createElement('div');d.className='color-dot'+((S.form.color||'#4ecb8d')===c?' active':'');
+      d.style.background=c;d.onclick=()=>{S.form.color=c;render();};cpRow.appendChild(d);
+    });
+    cpField.appendChild(cpRow);cpSlot.appendChild(cpField);
+  }
+  el.querySelector('#tpCur')?.addEventListener('click',()=>{snapshotAccForm(el);S.form.type='current';render();});
+  el.querySelector('#tpSav').onclick=()=>{snapshotAccForm(el);S.form.type='savings';render();};
+  el.querySelector('#tpInv').onclick=()=>{snapshotAccForm(el);S.form.type='investment';render();};
+  if(tp==='savings'){
+    el.querySelector('#pfW')?.addEventListener('click',()=>{snapshotAccForm(el);S.form.payoutFreq='weekly';S.form.payoutDay=1;render();});
+    el.querySelector('#pfM')?.addEventListener('click',()=>{snapshotAccForm(el);S.form.payoutFreq='monthly';S.form.payoutDay=1;render();});
+    el.querySelector('#pfA')?.addEventListener('click',()=>{snapshotAccForm(el);S.form.payoutFreq='annually';render();});
+  }
+  el.querySelector('#canBtn').onclick=()=>{S.modal=null;S.form={};S.editAcc=null;render();};
+  if(isEdit)el.querySelector('#delBtn').onclick=()=>{
+    if(!confirm(t('delAccConfirm')))return;
+    S.accounts=S.accounts.filter(a=>a.id!==S.editAcc.id);
+    S.modal=null;S.form={};S.editAcc=null;persist();render();
+  };
+  el.querySelector('#savBtn').onclick=()=>{
+    const name=el.querySelector('#fN').value.trim();
+    const balance=parseFloat(el.querySelector('#fB').value);
+    const startDate=el.querySelector('#fDt').value;
+    if(!name){S.form={...S.form,err:t('nameReq')};render();return;}
+    if(isNaN(balance)){S.form={...S.form,err:t('balReq')};render();return;}
+    let rate=0,dividend=0;
+    if(tp==='savings'){
+      rate=parseFloat(el.querySelector('#fR')?.value);
+      if(isNaN(rate)){S.form={...S.form,err:t('rateReq')};render();return;}
+      S.form.payoutFreq=S.form.payoutFreq||'monthly';
+      S.form.payoutDay=parseInt(el.querySelector('#fPD')?.value)||1;
+    } else {
+      dividend=parseFloat(el.querySelector('#fD')?.value)||0;
+    }
+    if(isEdit){
+      const idx=S.accounts.findIndex(a=>a.id===S.editAcc.id);
+      S.accounts[idx]={...S.accounts[idx],name,balance,type:tp,rate,dividend,startDate,payoutFreq:S.form.payoutFreq||'monthly',payoutDay:S.form.payoutDay||1,color:S.form.color||'#4ecb8d'};
+    } else {
+      S.accounts.push({id:Date.now().toString(),name,balance,type:tp,rate,dividend,startDate,payoutFreq:S.form.payoutFreq||'monthly',payoutDay:S.form.payoutDay||1,currency:S.form.currency||'EUR',color:S.form.color||'#4ecb8d',mutations:[]});
+    }
+    S.modal=null;S.form={};S.editAcc=null;persist();render();
+  };
+  return el;
+}
+
+function buildTimerForm(){
+  const isEdit=S.modal==='editTimer';
+  const el=document.createElement('div');
+  el.innerHTML=`
+    <div class="modal-title">${isEdit?t('editAccount'):t('timers')}</div>
+    <div class="field"><label>${t('timerName')}</label><input id="tN" type="text" placeholder="${t('timerPlaceholder')}" value="${S.form.tn||''}"></div>
+    ${S.form.err?`<div class="err-msg">${S.form.err}</div>`:''}
+    <div class="btn-row">
+      <button class="btn-sec" id="tCan">${t('cancel')}</button>
+      ${isEdit?`<button class="btn-sec btn-danger" id="tDel">${t('delete')}</button>`:''}
+      <button class="btn-primary" id="tStr">${isEdit?t('save'):t('startTimer')}</button>
+    </div>
+  `;
+  el.querySelector('#tCan').onclick=()=>{S.modal=null;S.form={};render();};
+  if(isEdit){
+    el.querySelector('#tDel').onclick=()=>{
+      if(!confirm(t('delTimerConfirm')))return;
+      S.timers=S.timers.filter(x=>x.id!==S.form.tid);
+      S.modal=null;S.form={};persist();render();
+    };
+  }
+  el.querySelector('#tStr').onclick=()=>{
+    const name=el.querySelector('#tN').value.trim()||t('timers');
+    if(isEdit){
+      const idx=S.timers.findIndex(x=>x.id===S.form.tid);
+      if(idx>=0)S.timers[idx]={...S.timers[idx],name};
+    } else {
+      S.timers.push({id:Date.now().toString(),name,startedAt:Date.now(),elapsed:0,paused:false});
+    }
+    S.modal=null;S.form={};persist();render();
+  };
+  return el;
+}
+
+
+// ── MUTATION MODAL ──
+
+function buildAdjustModal(){
+  const acc=S.editAcc;
+  const isSavings=acc.type==='savings';
+  const color=isSavings?'var(--grn)':'var(--blu)';
+  const el=document.createElement('div');
+
+  const hd=document.createElement('div');
+  hd.style.cssText='margin-bottom:20px';
+  hd.innerHTML=`<div class="modal-title" style="margin-bottom:4px">${t('adjustValues')||'Adjust values'}</div>
+    <div style="font-size:12px;color:var(--muted)">${acc.name}</div>`;
+  el.appendChild(hd);
+
+  // Show current values
+  const ctx=document.createElement('div');
+  ctx.style.cssText='background:var(--surf2);border-radius:12px;padding:12px 14px;margin-bottom:6px;display:flex;gap:16px;font-size:12px';
+  ctx.innerHTML=`<div><span style="color:var(--muted)">${t('balance')}:</span> <span style="color:${color}">${fmtC(accBal(acc),acc.currency||'EUR',2)}</span></div>
+    ${isSavings
+      ?`<div><span style="color:var(--muted)">${t('rate')}:</span> <span style="color:var(--grn)">${acc.rate}%</span></div>`
+      :`<div><span style="color:var(--muted)">${t('dividend').split(' ')[0]}:</span> <span style="color:var(--grn)">${fmtC(accDiv(acc),acc.currency||'EUR',2)}</span></div>`
+    }`;
+  el.appendChild(ctx);
+
+  // Info label
+  const info=document.createElement('div');
+  info.style.cssText='font-size:10px;color:var(--muted);margin-bottom:18px;padding:0 2px';
+  info.textContent=t('adjustInfo')||'Change takes effect from the chosen date';
+  el.appendChild(info);
+
+  const sym=currSym(acc.currency||'EUR');
+  const form=document.createElement('div');
+  form.innerHTML=`
+    <div class="field"><label>${t('adjustDate')||'Effective date'}</label>
+      <input id="aDt" type="date" value="${S.form.adjDate||new Date().toISOString().split('T')[0]}"></div>
+    <div class="field"><label>${t('newBalance')||'New balance'} (${sym})</label>
+      <input id="aBal" type="number" inputmode="decimal" placeholder="${fmtC(accBal(acc),acc.currency||'EUR',2).replace(/[^0-9.,]/g,'')}" value="${S.form.adjBal||''}"></div>
+    ${isSavings
+      ?`<div class="field"><label>${t('rate')}</label>
+        <input id="aRate" type="number" inputmode="decimal" step="0.01" placeholder="${acc.rate}" value="${S.form.adjRate||''}"></div>`
+      :`<div class="field"><label>${t('newDividend')||'New dividend/yr'} (${sym})</label>
+        <input id="aDiv" type="number" inputmode="decimal" placeholder="${fmtC(accDiv(acc),acc.currency||'EUR',2).replace(/[^0-9.,]/g,'')}" value="${S.form.adjDiv||''}"></div>`
+    }
+    ${S.form.err?`<div class="err-msg">${S.form.err}</div>`:''}
+    <div class="btn-row">
+      <button class="btn-sec" id="aCan">${t('cancel')}</button>
+      <button class="btn-primary" id="aSav">${t('save')}</button>
+    </div>`;
+  el.appendChild(form);
+
+  form.querySelector('#aCan').onclick=()=>{S.modal=null;S.form={};S.editAcc=null;render();};
+  form.querySelector('#aSav').onclick=()=>{
+    const newBal=form.querySelector('#aBal').value;
+    const newRate=isSavings?(form.querySelector('#aRate')?.value||''):null;
+    const newDiv=isSavings?null:(form.querySelector('#aDiv')?.value||'');
+    const date=form.querySelector('#aDt').value;
+
+    if(newBal===''&&(isSavings?newRate==='':newDiv==='')){
+      S.form={...S.form,err:t('balReq')};render();return;
+    }
+
+    const idx=S.accounts.findIndex(a=>a.id===acc.id);
+    if(!S.accounts[idx].mutations)S.accounts[idx].mutations=[];
+
+    // Adjust balance via mutation delta
+    if(newBal!==''){
+      const curBal=accBal(acc);
+      const targetBal=parseFloat(newBal);
+      const delta=targetBal-curBal;
+      if(Math.abs(delta)>0.001){
+        S.accounts[idx].mutations.push({
+          id:Date.now().toString(),date,
+          inleg:parseFloat(delta.toFixed(2)),dividend:0,isAdjustment:true,
+        });
+      }
+    }
+
+    // Savings: update rate directly (effective immediately from date chosen)
+    if(isSavings&&newRate!==''){
+      const targetRate=parseFloat(newRate);
+      if(!isNaN(targetRate)&&Math.abs(targetRate-parseFloat(acc.rate))>0.001){
+        S.accounts[idx].rate=targetRate.toString();
+      }
+    }
+
+    // Investment: adjust dividend via mutation delta
+    if(!isSavings&&newDiv!==''){
+      const curDiv=accDiv(acc);
+      const targetDiv=parseFloat(newDiv);
+      const deltaDiv=targetDiv-curDiv;
+      if(Math.abs(deltaDiv)>0.001){
+        S.accounts[idx].mutations.push({
+          id:(Date.now()+1).toString(),date,
+          inleg:0,dividend:parseFloat(deltaDiv.toFixed(2)),isAdjustment:true,
+        });
+      }
+    }
+
+    S.accounts[idx].mutations.sort((a,b)=>a.date.localeCompare(b.date));
+    S.editAcc=S.accounts[idx];
+    S.modal=null;S.form={};S.editAcc=null;
+    persist();render();
+  };
+  return el;
+}
+
+function buildMutationModal(){
+  const acc=S.editAcc;
+  const isSavings=acc.type==='savings';
+  const color=isSavings?'var(--grn)':'var(--blu)';
+  const muts=(acc.mutations||[]).slice().sort((a,b)=>b.date.localeCompare(a.date));
+  const el=document.createElement('div');
+
+  if(S.modal==='viewMutations'){
+    // Title
+    const hd=document.createElement('div');
+    hd.style.cssText='margin-bottom:16px';
+    hd.innerHTML=`<div class="modal-title" style="margin-bottom:4px">${t('mutationHistory')}</div>
+      <div style="font-size:12px;color:var(--muted)">${acc.name}</div>`;
+    el.appendChild(hd);
+
+    // Summary row - initieel + mutaties
+    const sumRow=document.createElement('div');
+    sumRow.style.cssText='background:var(--surf2);border-radius:14px;padding:14px;margin-bottom:16px;display:flex;gap:12px';
+    const curBal=accBal(acc), curDiv=accDiv(acc);
+    sumRow.innerHTML=`
+      <div style="flex:1">
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">${t('balance')}</div>
+        <div style="font-size:18px;color:${color};font-family:var(--serif)">${fmtE(curBal,2)}</div>
+      </div>
+      ${!isSavings?`<div style="flex:1">
+        <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">${t('dividend').split(' ')[0]}/jr</div>
+        <div style="font-size:18px;color:var(--grn);font-family:var(--serif)">${fmtE(curDiv,2)}</div>
+      </div>`:''}
+    `;
+    el.appendChild(sumRow);
+
+    // Add button
+    const addBtn=document.createElement('button');
+    addBtn.className='btn-primary';
+    addBtn.style.cssText='width:100%;margin-bottom:14px';
+    addBtn.textContent=t('addMutation');
+    addBtn.onclick=()=>{S.modal='addMutation';S.form={mdate:new Date().toISOString().split('T')[0],minleg:'',mdiv:''};render();};
+    el.appendChild(addBtn);
+
+    // Mutation list
+    if(muts.length===0){
+      const empty=document.createElement('div');
+      empty.style.cssText='color:var(--muted);font-size:13px;padding:12px 0;text-align:center';
+      empty.textContent=t('noMutations');
+      el.appendChild(empty);
+    } else {
+      // Running totals for display
+      let runBal=parseFloat(acc.balance||0), runDiv=parseFloat(acc.dividend||0);
+      const mutsAsc=(acc.mutations||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+      const totalsMap={};
+      mutsAsc.forEach(m=>{
+        runBal+=parseFloat(m.inleg||0);
+        runDiv+=parseFloat(m.dividend||0);
+        totalsMap[m.id]={bal:runBal,div:runDiv};
+      });
+
+      muts.forEach(m=>{
+        const tot=totalsMap[m.id]||{};
+        const row=document.createElement('div');
+        row.style.cssText='background:var(--surf2);border-radius:14px;padding:14px;margin-bottom:8px';
+        // Date + delete
+        const top=document.createElement('div');
+        top.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px';
+        top.innerHTML=`<span style="font-size:12px;color:var(--muted)">${m.date}${m.isAdjustment?` <span style="font-size:9px;background:rgba(201,168,76,.15);color:var(--gold);border-radius:6px;padding:1px 6px;margin-left:4px">${t('adjustValues')||'adj'}</span>`:''}</span>`;
+        const del=document.createElement('button');
+        del.style.cssText='background:none;border:none;color:var(--red);font-size:20px;padding:0 2px';
+        del.textContent='×';
+        del.onclick=()=>{
+          const idx=S.accounts.findIndex(a=>a.id===acc.id);
+          S.accounts[idx].mutations=S.accounts[idx].mutations.filter(x=>x.id!==m.id);
+          S.editAcc=S.accounts[idx];persist();render();
+        };
+        top.appendChild(del);
+        row.appendChild(top);
+        // Values
+        const vals=document.createElement('div');
+        vals.style.cssText='display:flex;gap:12px;flex-wrap:wrap';
+        if(m.inleg!==0) vals.innerHTML+=`<div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">${t('mutLabelInleg')}</div>
+          <div style="color:${m.inleg>0?color:'var(--red)'};font-size:15px">${m.inleg>0?'+':'-'}${fmtC(Math.abs(parseFloat(m.inleg)),acc.currency||'EUR',2)}</div>
+          ${tot.bal!==undefined?`<div style="font-size:10px;color:var(--muted)">→ ${fmtC(tot.bal,acc.currency||'EUR',2)}</div>`:''}
+        </div>`;
+        if(!isSavings&&m.dividend!==0) vals.innerHTML+=`<div>
+          <div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">${t('mutLabelDiv')}</div>
+          <div style="color:${m.dividend>0?'var(--grn)':'var(--red)'};font-size:15px">${m.dividend>0?'+':'-'}${fmtC(Math.abs(parseFloat(m.dividend)),acc.currency||'EUR',2)}</div>
+          ${tot.div!==undefined?`<div style="font-size:10px;color:var(--muted)">→ ${fmtC(tot.div,acc.currency||'EUR',2)}/jr</div>`:''}
+        </div>`;
+        row.appendChild(vals);
+        el.appendChild(row);
+      });
+    }
+
+    const closeBtn=document.createElement('button');
+    closeBtn.className='btn-sec';
+    closeBtn.style.cssText='width:100%;margin-top:8px';
+    closeBtn.textContent=t('cancel');
+    closeBtn.onclick=()=>{S.modal=null;S.form={};S.editAcc=null;render();};
+    el.appendChild(closeBtn);
+    return el;
+  }
+
+  // ── ADD MUTATION form ──
+  const hd2=document.createElement('div');
+  hd2.style.cssText='margin-bottom:20px';
+  hd2.innerHTML=`<div class="modal-title" style="margin-bottom:4px">${t('addMutation')}</div>
+    <div style="font-size:12px;color:var(--muted)">${acc.name}</div>`;
+  el.appendChild(hd2);
+
+  // Context: show current totals
+  const ctx=document.createElement('div');
+  ctx.style.cssText='background:var(--surf2);border-radius:12px;padding:12px 14px;margin-bottom:18px;display:flex;gap:16px;font-size:12px';
+  ctx.innerHTML=`<div><span style="color:var(--muted)">${t('balance')}:</span> <span style="color:${color}">${fmtE(accBal(acc),2)}</span></div>
+    ${!isSavings?`<div><span style="color:var(--muted)">${t('dividend').split(' ')[0]}/jr:</span> <span style="color:var(--grn)">${fmtE(accDiv(acc),2)}</span></div>`:''}`;
+  el.appendChild(ctx);
+
+  // Type toggle (increase / decrease)
+  const typeToggle=document.createElement('div');
+  typeToggle.style.cssText='display:flex;background:var(--hover);border-radius:12px;padding:3px;margin-bottom:18px;gap:3px';
+  const isDecrease=S.form.mutDir==='decrease';
+  ['increase','decrease'].forEach(dir=>{
+    const btn=document.createElement('button');
+    btn.style.cssText=`flex:1;padding:9px;border-radius:9px;font-family:var(--mono);font-size:12px;border:none;cursor:pointer;transition:all .2s;`
+      +(S.form.mutDir===dir||(!S.form.mutDir&&dir==='increase')
+        ?`background:${dir==='increase'?'rgba(78,203,141,.2)':'rgba(255,107,107,.2)'};color:${dir==='increase'?'var(--grn)':'var(--red)'};`
+        :'background:none;color:var(--muted);');
+    btn.textContent=(dir==='increase'?'↑ ':'↓ ')+t(dir);
+    btn.onclick=()=>{S.form={...S.form,mutDir:dir};render();};
+    typeToggle.appendChild(btn);
+  });
+  el.appendChild(typeToggle);
+
+  const form=document.createElement('div');
+  form.innerHTML=`
+    <div class="field"><label>${t('mutationDate')}</label><input id="mDt" type="date" value="${S.form.mdate||new Date().toISOString().split('T')[0]}"></div>
+    <div class="field"><label>${t('inleg')}</label><input id="mIn" type="number" inputmode="decimal" placeholder="0" value="${S.form.minleg||''}"></div>
+    ${!isSavings?`<div class="field"><label>${t('extraDiv')}</label><input id="mDv" type="number" inputmode="decimal" placeholder="0" value="${S.form.mdiv||''}"></div>`:''}
+    ${S.form.err?`<div class="err-msg">${S.form.err}</div>`:''}
+    <div class="btn-row">
+      <button class="btn-sec" id="mCan">${t('cancel')}</button>
+      <button class="btn-primary" id="mSav">${t('save')}</button>
+    </div>
+  `;
+  el.appendChild(form);
+
+  form.querySelector('#mCan').onclick=()=>{S.modal='viewMutations';S.form={};render();};
+  form.querySelector('#mSav').onclick=()=>{
+    const raw=parseFloat(form.querySelector('#mIn').value)||0;
+    const dir=S.form.mutDir||'increase';
+    const sign=dir==='decrease'?-1:1;
+    const inleg=raw*sign;
+    const rawDiv=isSavings?0:(parseFloat(form.querySelector('#mDv')?.value)||0);
+    const dividend=rawDiv*sign;
+    const date=form.querySelector('#mDt').value;
+    if(raw===0&&rawDiv===0){S.form={...S.form,err:t('mutErrFill')};render();return;}
+    const idx=S.accounts.findIndex(a=>a.id===acc.id);
+    if(!S.accounts[idx].mutations)S.accounts[idx].mutations=[];
+    S.accounts[idx].mutations.push({id:Date.now().toString(),date,inleg,dividend});
+    S.accounts[idx].mutations.sort((a,b)=>a.date.localeCompare(b.date));
+    S.editAcc=S.accounts[idx];
+    S.modal='viewMutations';S.form={};
+    persist();render();
+  };
+  return el;
+}
+
+// ═══════════════════════════════════
+//  ASSETS TAB
+// ═══════════════════════════════════
+function buildAssetsTab(){
+  const el=document.createElement('div');
+  if(S.assets.length===0){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">📈</div><div class="empty-txt">${t('noAssets')}</div><div class="empty-sub">${t('noAssetsSub')}</div></div>`;
+  } else {
+    const list=document.createElement('div');list.className='acc-list';
+    S.assets.forEach(a=>{
+      const cat=ASSET_CATS[a.category]||ASSET_CATS.other;
+      const color=a.color||cat.dc;
+      const val=assetVal(a),yr=assetYrInc(a);
+      const card=document.createElement('button');card.className='acc-card';
+      card.style.cssText='border-radius:20px 20px 0 0;border-bottom:none;margin-bottom:0;cursor:pointer;width:100%;text-align:left;display:block';
+      card.innerHTML=`<div class="acc-top"><div class="acc-id"><div class="acc-dot" style="background:${color}"></div><div><div class="acc-name">${a.name}</div><div class="acc-meta">${cat.icon} ${t(a.category)}${a.category==='stocks'&&a.positions?' · '+(a.positions||[]).length+' '+t('positions'):''}</div></div></div><div class="acc-bal" style="color:${color}">${fmtC(val,a.currency||'EUR',2)}</div></div><div class="acc-bottom"><div class="acc-stat"><div class="acc-stat-label">${t('perYear')}</div><div class="acc-stat-val" style="color:${color}">${fmtC(yr,a.currency||'EUR',2)}</div></div><div class="acc-stat"><div class="acc-stat-label">${t('perDay')}</div><div class="acc-stat-val" style="color:${color}">${fmtC(yr/365.25,a.currency||'EUR',4)}</div></div><div class="acc-stat"><div class="acc-stat-label">${a.incomeMode==='%'?t('returnPct'):t('annualIncome')}</div><div class="acc-stat-val" style="color:${color}">${a.incomeMode==='%'?(a.annualReturn||0)+'%':fmtC(yr,a.currency||'EUR',2)}</div></div></div>`;
+      card.onclick=()=>{S.editAsset=a;S.modal='editAsset';S.form={...a};render();};
+      const btnRow=document.createElement('div');
+      btnRow.style.cssText='display:flex;gap:0;border:1px solid var(--brd);border-top:none;border-radius:0 0 20px 20px;overflow:hidden;margin-bottom:14px';
+      if(a.category==='stocks'){
+        const pfBtn=document.createElement('button');
+        pfBtn.style.cssText=`flex:1;padding:10px 8px;background:var(--overlay);border:none;border-right:1px solid var(--brd);color:${color};font-size:11px;font-family:var(--mono);display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer`;
+        pfBtn.innerHTML=`📊 ${t('portfolio')}`;pfBtn.onclick=()=>{S.viewPortfolio=a;render();};
+        btnRow.appendChild(pfBtn);
+      }
+      const mutBtn=document.createElement('button');
+      mutBtn.style.cssText=`flex:1;padding:10px 8px;background:var(--overlay);border:none;color:${color};font-size:11px;font-family:var(--mono);display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer`;
+      mutBtn.innerHTML=`+ ${t('mutations')}`;mutBtn.onclick=()=>{S.editAcc=a;S.modal='viewAssetMutations';S.form={};render();};
+      btnRow.appendChild(mutBtn);
+      const wrap=document.createElement('div');wrap.appendChild(card);wrap.appendChild(btnRow);list.appendChild(wrap);
+    });
+    const pw=document.createElement('div');pw.className='powered';pw.textContent=t('powered');list.appendChild(pw);el.appendChild(list);
+  }
+  const fab=document.createElement('button');fab.className='fab';fab.textContent='+';
+  fab.onclick=()=>{S.modal='addAsset';S.form={category:'stocks',incomeMode:'€',color:ASSET_CATS.stocks.dc};render();};
+  el.appendChild(fab);return el;
+}
+
+// ═══════════════════════════════════
+//  PORTFOLIO VIEW (stocks detail)
+// ═══════════════════════════════════
+function buildPortfolioView(){
+  const a=S.viewPortfolio,el=document.createElement('div');el.className='acc-list';
+  const cat=ASSET_CATS[a.category]||ASSET_CATS.stocks,color=a.color||cat.dc;
+  const positions=a.positions||[];
+  const totalVal=positions.reduce((s,p)=>s+parseFloat(p.shares||0)*parseFloat(p.price||0),0);
+  const back=document.createElement('button');
+  back.style.cssText='background:none;border:none;color:var(--muted);font-size:14px;padding:8px 0;display:flex;align-items:center;gap:8px;cursor:pointer';
+  back.innerHTML='← '+a.name;back.onclick=()=>{S.viewPortfolio=null;render();};el.appendChild(back);
+  const summary=document.createElement('div');summary.className='chart-card';
+  summary.innerHTML=`<div class="chart-title">${t('portfolio')} — ${a.name}</div><div style="display:flex;gap:16px;flex-wrap:wrap"><div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">${t('totalValue')}</div><div style="font-size:24px;font-family:var(--serif);color:${color}">${fmtC(totalVal,a.currency||'EUR',2)}</div></div><div><div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">${t('positions')}</div><div style="font-size:24px;font-family:var(--serif);color:var(--txt)">${positions.length}</div></div></div>`;
+  el.appendChild(summary);
+  if(positions.length===0){el.innerHTML+='<div class="empty"><div class="empty-icon">📊</div><div class="empty-txt">'+t('noAssets')+'</div></div>';}
+  else positions.forEach((p,idx)=>{
+    const posVal=parseFloat(p.shares||0)*parseFloat(p.price||0);
+    const row=document.createElement('div');row.className='portfolio-position';
+    row.innerHTML=`<div class="item-dot" style="background:${color}"></div><div class="pos-info"><div class="pos-symbol">${p.symbol}</div><div class="pos-name">${p.name||p.symbol}</div></div><div class="pos-right"><div class="pos-value">${fmtC(posVal,a.currency||'EUR',2)}</div><div class="pos-shares">${p.shares} × ${fmtC(parseFloat(p.price||0),a.currency||'EUR',2)}</div></div>`;
+    const del=document.createElement('button');del.style.cssText='background:none;border:none;color:var(--red);font-size:16px;padding:4px;flex-shrink:0;opacity:.6';del.textContent='×';
+    del.onclick=e=>{e.stopPropagation();const ai=S.assets.findIndex(x=>x.id===a.id);S.assets[ai].positions.splice(idx,1);S.viewPortfolio=S.assets[ai];persist();render();};
+    row.appendChild(del);el.appendChild(row);
+  });
+  const addBtn=document.createElement('button');addBtn.className='add-timer-btn';addBtn.textContent=t('addPosition');
+  addBtn.onclick=()=>{S.modal='addPosition';S.form={};render();};el.appendChild(addBtn);
+  return el;
+}
+
+// ═══════════════════════════════════
+//  TRANSFER FORM
+// ═══════════════════════════════════
+function buildTransferForm(){
+  const from=S.editAcc;
+  const el=document.createElement('div');
+  const others=S.accounts.filter(a=>a.id!==from.id);
+  el.innerHTML=`<div class="modal-title">${t('transfer')}</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:18px">${t('transferFrom')}: <strong style="color:var(--txt)">${from.name}</strong> (${fmtC(accBal(from),from.currency||'EUR',2)})</div>
+    <div class="field"><label>${t('transferTo')}</label>
+      <select id="trTo" style="width:100%;background:var(--surf2);border:1px solid var(--brd);border-radius:12px;padding:12px;color:var(--txt);font-family:var(--mono);font-size:12px">
+        ${others.map(a=>`<option value="${a.id}">${a.name} (${fmtC(accBal(a),a.currency||'EUR',2)})</option>`).join('')}
+      </select>
+    </div>
+    <div class="field"><label>${t('transferAmount')}</label><input id="trAmt" type="number" inputmode="decimal" placeholder="0" value=""></div>
+    ${S.form.err?`<div class="err-msg">${S.form.err}</div>`:''}
+    <div class="btn-row">
+      <button class="btn-sec" id="trCan">${t('cancel')}</button>
+      <button class="btn-primary" id="trSav">${t('transferConfirm')}</button>
+    </div>`;
+  setTimeout(()=>{
+    el.querySelector('#trCan').onclick=()=>{S.modal=null;S.form={};S.editAcc=null;render();};
+    el.querySelector('#trSav').onclick=()=>{
+      const amt=parseFloat(el.querySelector('#trAmt').value)||0;
+      const toId=el.querySelector('#trTo').value;
+      if(amt<=0){S.form={...S.form,err:'Enter a valid amount'};render();return;}
+      const fi=S.accounts.findIndex(a=>a.id===from.id);
+      const ti=S.accounts.findIndex(a=>a.id===toId);
+      if(fi<0||ti<0)return;
+      // Add decrease mutation to source
+      if(!S.accounts[fi].mutations)S.accounts[fi].mutations=[];
+      S.accounts[fi].mutations.push({id:Date.now().toString(),date:new Date().toISOString().split('T')[0],inleg:-amt,dividend:0});
+      // Add increase mutation to target
+      if(!S.accounts[ti].mutations)S.accounts[ti].mutations=[];
+      S.accounts[ti].mutations.push({id:(Date.now()+1).toString(),date:new Date().toISOString().split('T')[0],inleg:amt,dividend:0});
+      // Add transaction
+      S.transactions.push({id:(Date.now()+2).toString(),date:new Date().toISOString().split('T')[0],type:'transfer',description:`${from.name} → ${S.accounts[ti].name}`,amount:amt});
+      S.modal=null;S.form={};S.editAcc=null;persist();render();
+    };
+  },10);
+  return el;
+}
+
+// ═══════════════════════════════════
+//  ASSET FORM
+// ═══════════════════════════════════
+function buildAssetForm(){
+  const isEdit=S.modal==='editAsset';
+  const cat=S.form.category||'stocks',mode=S.form.incomeMode||'€';
+  const el=document.createElement('div');
+  el.innerHTML=`<div class="modal-title">${isEdit?t('editAsset'):t('addAsset')}</div>
+    <div class="field"><label>${t('category')}</label>
+      <div class="type-btns" id="catBtns">
+        ${Object.entries(ASSET_CATS).map(([k,v])=>`<button class="type-btn${cat===k?' active':''}" data-c="${k}">${v.icon} ${t(k)}</button>`).join('')}
+      </div>
+    </div>
+    <div class="field"><label>${t('name')}</label><input id="aN" type="text" value="${S.form.name||''}"></div>
+    ${cat!=='stocks'?`<div class="field"><label>${t('value')}</label><input id="aVal" type="number" inputmode="decimal" value="${S.form.value||''}"></div>`:''}
+    <div class="field"><label>${t('incomeMode')}</label>
+      <div class="type-btns" id="modeBtns">
+        <button class="type-btn${mode==='%'?' active':''}" data-m="%">${t('byPercent')}</button>
+        <button class="type-btn${mode==='€'?' active':''}" data-m="€">${t('byAmount')}</button>
+      </div>
+    </div>
+    ${mode==='%'?`<div class="field"><label>${t('returnPct')}</label><input id="aRet" type="number" inputmode="decimal" step="0.1" value="${S.form.annualReturn||''}"></div>`
+    :`<div class="field"><label>${t('annualIncome')}</label><input id="aInc" type="number" inputmode="decimal" value="${S.form.annualIncome||''}"></div>`}
+    <div id="acpSlot"></div>
+    ${S.form.err?`<div class="err-msg">${S.form.err}</div>`:''}
+    <div class="btn-row">
+      <button class="btn-sec" id="aCanBtn">${t('cancel')}</button>
+      ${isEdit?`<button class="btn-sec btn-danger" id="aDelBtn">${t('delete')}</button>`:''}
+      <button class="btn-primary" id="aSavBtn">${t('save')}</button>
+    </div>`;
+  // Color picker
+  const cpSlot=el.querySelector('#acpSlot');
+  if(cpSlot){
+    const cpField=document.createElement('div');cpField.className='field';cpField.innerHTML='<label>'+t('color')+'</label>';
+    const cpRow=document.createElement('div');cpRow.className='color-pick-row';
+    COLOR_PAL.forEach(c=>{const d=document.createElement('div');d.className='color-dot'+((S.form.color||(ASSET_CATS[cat]||{}).dc||'#4ecb8d')===c?' active':'');d.style.background=c;d.onclick=()=>{S.form.color=c;render();};cpRow.appendChild(d);});
+    cpField.appendChild(cpRow);cpSlot.appendChild(cpField);
+  }
+  setTimeout(()=>{
+    function snap(){S.form.name=el.querySelector('#aN')?.value;S.form.value=el.querySelector('#aVal')?.value;S.form.annualReturn=el.querySelector('#aRet')?.value;S.form.annualIncome=el.querySelector('#aInc')?.value;}
+    el.querySelectorAll('#catBtns .type-btn').forEach(b=>{b.onclick=()=>{snap();S.form.category=b.dataset.c;S.form.color=(ASSET_CATS[b.dataset.c]||{}).dc;render();};});
+    el.querySelectorAll('#modeBtns .type-btn').forEach(b=>{b.onclick=()=>{snap();S.form.incomeMode=b.dataset.m;render();};});
+    el.querySelector('#aCanBtn').onclick=()=>{S.modal=null;S.form={};S.editAsset=null;render();};
+    if(isEdit&&el.querySelector('#aDelBtn'))el.querySelector('#aDelBtn').onclick=()=>{if(confirm(t('delAssetConfirm'))){S.assets=S.assets.filter(a=>a.id!==S.editAsset.id);S.modal=null;S.form={};S.editAsset=null;persist();render();}};
+    el.querySelector('#aSavBtn').onclick=()=>{
+      const name=el.querySelector('#aN')?.value?.trim();
+      if(!name){S.form.err=t('nameReq');render();return;}
+      const obj={name,category:cat,incomeMode:mode,color:S.form.color||(ASSET_CATS[cat]||{}).dc||'#4ecb8d',currency:'EUR'};
+      if(cat!=='stocks')obj.value=parseFloat(el.querySelector('#aVal')?.value)||0;
+      else obj.positions=isEdit&&S.editAsset.positions?S.editAsset.positions:[];
+      if(mode==='%')obj.annualReturn=parseFloat(el.querySelector('#aRet')?.value)||0;
+      else obj.annualIncome=parseFloat(el.querySelector('#aInc')?.value)||0;
+      if(isEdit){const i=S.assets.findIndex(a=>a.id===S.editAsset.id);S.assets[i]={...S.assets[i],...obj};}
+      else S.assets.push({id:Date.now().toString(),createdDate:new Date().toISOString().split('T')[0],...obj});
+      S.modal=null;S.form={};S.editAsset=null;persist();render();
+    };
+  },10);
+  return el;
+}
+
+// ═══════════════════════════════════
+//  ASSET MUTATION MODAL
+// ═══════════════════════════════════
+function buildAssetMutationModal(){
+  const acc=S.editAcc;const el=document.createElement('div');
+  if(S.modal==='viewAssetMutations'){
+    const muts=(acc.assetMutations||[]).slice().reverse();
+    el.innerHTML=`<div class="modal-title">${t('mutationHistory')}</div><div style="font-size:12px;color:var(--muted);margin-bottom:14px">${acc.name}</div>`;
+    const addBtn=document.createElement('button');addBtn.className='btn-primary';addBtn.style.cssText='width:100%;margin-bottom:14px';
+    addBtn.textContent=t('addMutation');addBtn.onclick=()=>{S.modal='addAssetMutation';S.form={mdate:new Date().toISOString().split('T')[0]};render();};el.appendChild(addBtn);
+    if(muts.length===0){el.innerHTML+='<div style="color:var(--muted);text-align:center;padding:12px">'+t('noMutations')+'</div>';}
+    else muts.forEach(m=>{
+      const row=document.createElement('div');row.style.cssText='background:var(--surf2);border-radius:14px;padding:14px;margin-bottom:8px';
+      row.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:12px;color:var(--muted)">${m.date}</span></div><div style="color:${m.amount>0?'var(--grn)':'var(--red)'};font-size:15px;margin-top:6px">${m.amount>0?'+':''}${fmtC(m.amount,'EUR',2)}</div>`;
+      const del=document.createElement('button');del.style.cssText='background:none;border:none;color:var(--red);font-size:18px;float:right;margin-top:-30px';del.textContent='×';
+      del.onclick=()=>{const i=S.assets.findIndex(a=>a.id===acc.id);S.assets[i].assetMutations=S.assets[i].assetMutations.filter(x=>x.id!==m.id);S.editAcc=S.assets[i];persist();render();};
+      row.appendChild(del);el.appendChild(row);
+    });
+    const closeBtn=document.createElement('button');closeBtn.className='btn-sec';closeBtn.style.cssText='width:100%;margin-top:8px';
+    closeBtn.textContent=t('cancel');closeBtn.onclick=()=>{S.modal=null;S.form={};S.editAcc=null;render();};el.appendChild(closeBtn);
+    return el;
+  }
+  // Add mutation
+  el.innerHTML=`<div class="modal-title">${t('addMutation')}</div><div style="font-size:12px;color:var(--muted);margin-bottom:14px">${acc.name}</div>
+    <div class="field"><label>${t('mutationDate')}</label><input id="amDt" type="date" value="${S.form.mdate||new Date().toISOString().split('T')[0]}"></div>
+    <div class="field"><label>${t('mutLabelInleg')}</label><input id="amAmt" type="number" inputmode="decimal" value=""></div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="type-btn${(S.form.mutDir||'increase')==='increase'?' active':''}" id="amInc" style="flex:1">${t('increase')}</button>
+      <button class="type-btn${S.form.mutDir==='decrease'?' active':''}" id="amDec" style="flex:1">${t('decrease')}</button>
+    </div>
+    ${S.form.err?`<div class="err-msg">${S.form.err}</div>`:''}
+    <div class="btn-row"><button class="btn-sec" id="amCan">${t('cancel')}</button><button class="btn-primary" id="amSav">${t('save')}</button></div>`;
+  setTimeout(()=>{
+    el.querySelector('#amInc').onclick=()=>{S.form.mutDir='increase';render();};
+    el.querySelector('#amDec').onclick=()=>{S.form.mutDir='decrease';render();};
+    el.querySelector('#amCan').onclick=()=>{S.modal='viewAssetMutations';S.form={};render();};
+    el.querySelector('#amSav').onclick=()=>{
+      const raw=parseFloat(el.querySelector('#amAmt').value)||0;
+      if(raw===0){S.form.err=t('mutErrFill');render();return;}
+      const sign=(S.form.mutDir||'increase')==='decrease'?-1:1;
+      const i=S.assets.findIndex(a=>a.id===acc.id);
+      if(!S.assets[i].assetMutations)S.assets[i].assetMutations=[];
+      S.assets[i].assetMutations.push({id:Date.now().toString(),date:el.querySelector('#amDt').value,amount:raw*sign});
+      S.editAcc=S.assets[i];S.modal='viewAssetMutations';S.form={};persist();render();
+    };
+  },10);
+  return el;
+}
+
+// ═══════════════════════════════════
+//  ADD POSITION FORM (stocks)
+// ═══════════════════════════════════
+function buildAddPositionForm(){
+  const a=S.viewPortfolio;const el=document.createElement('div');
+  el.innerHTML=`<div class="modal-title">${t('addPosition')}</div>
+    <div class="field"><label>${t('symbol')}</label><input id="pSym" type="text" placeholder="AAPL, VWRL..." value="${S.form.sym||''}"></div>
+    <div class="field"><label>${t('shares')}</label><input id="pShares" type="number" inputmode="decimal" value="${S.form.shares||''}"></div>
+    <div class="field"><label>${t('pricePerShare')}</label><input id="pPrice" type="number" inputmode="decimal" value="${S.form.price||''}"></div>
+    <button id="pLookup" style="width:100%;padding:10px;background:var(--surf2);border:1px solid var(--brd);border-radius:12px;color:var(--gold);font-size:12px;font-family:var(--mono);margin-bottom:14px;cursor:pointer">${t('lookupPrice')}</button>
+    ${S.form.err?`<div class="err-msg">${S.form.err}</div>`:''}
+    <div class="btn-row"><button class="btn-sec" id="pCan">${t('cancel')}</button><button class="btn-primary" id="pSav">${t('save')}</button></div>`;
+  setTimeout(()=>{
+    el.querySelector('#pLookup').onclick=async()=>{
+      const sym=el.querySelector('#pSym').value.trim().toUpperCase();
+      if(!sym)return;
+      el.querySelector('#pLookup').textContent='Loading...';
+      const q=await finnhubQuote(sym);
+      if(q&&q.c>0)el.querySelector('#pPrice').value=q.c.toFixed(2);
+      el.querySelector('#pLookup').textContent=t('lookupPrice');
+    };
+    el.querySelector('#pCan').onclick=()=>{S.modal=null;S.form={};render();};
+    el.querySelector('#pSav').onclick=()=>{
+      const sym=el.querySelector('#pSym').value.trim().toUpperCase();
+      const shares=parseFloat(el.querySelector('#pShares').value)||0;
+      const price=parseFloat(el.querySelector('#pPrice').value)||0;
+      if(!sym||shares<=0){S.form.err=t('nameReq');render();return;}
+      const ai=S.assets.findIndex(x=>x.id===a.id);
+      if(!S.assets[ai].positions)S.assets[ai].positions=[];
+      S.assets[ai].positions.push({symbol:sym,name:sym,shares,price});
+      S.viewPortfolio=S.assets[ai];S.modal=null;S.form={};persist();render();
+    };
+  },10);
+  return el;
+}
+
+// ═══════════════════════════════════
+//  TICKER SOURCES MODAL
+// ═══════════════════════════════════
+function buildTickerSourcesModal(){
+  const el=document.createElement('div');
+  el.innerHTML=`<div class="modal-title">${t('tickerSources')}</div><div style="font-size:12px;color:var(--muted);margin-bottom:18px">${t('tickerSourcesDesc')}</div>`;
+  const sources=[
+    {key:'savings',label:t('savings'),color:'#4ecb8d'},
+    {key:'dividends',label:t('investment')+' ('+t('dividend').split(' ')[0]+')',color:'#5b9cf6'},
+    {key:'realestate_rent',label:t('realestate')+' (rent)',color:'#e8975b'},
+    {key:'realestate_appr',label:t('realestate')+' (appreciation)',color:'#e8975b'},
+    {key:'stocks',label:t('stocks'),color:'#4ecb8d'},
+    {key:'sideproject',label:t('sideproject'),color:'#e8c97a'},
+    {key:'ads',label:t('ads'),color:'#c9a84c'},
+    {key:'royalties',label:t('royalties'),color:'#7ee8b5'},
+    {key:'commodities',label:t('commodities'),color:'#5b9cf6'},
+    {key:'p2p',label:t('p2p'),color:'#a87cf6'},
+    {key:'other',label:t('other'),color:'#8a9bb5'},
+  ];
+  sources.forEach(src=>{
+    const on=!!S.tickerSources[src.key];
+    const row=document.createElement('div');row.className='ticker-toggle';
+    row.innerHTML=`<div class="ticker-toggle-left"><div class="ticker-toggle-dot" style="background:${src.color}"></div>${src.label}</div>`;
+    const sw=document.createElement('div');sw.className='toggle-switch'+(on?' on':'');
+    sw.innerHTML='<div class="toggle-knob"></div>';
+    sw.onclick=()=>{S.tickerSources[src.key]=!S.tickerSources[src.key];persist();render();};
+    row.appendChild(sw);el.appendChild(row);
+  });
+  const closeBtn=document.createElement('button');closeBtn.className='btn-primary';closeBtn.style.cssText='width:100%;margin-top:14px';
+  closeBtn.textContent=t('save');closeBtn.onclick=()=>{S.modal=null;render();};el.appendChild(closeBtn);
+  return el;
+}
+
+// ═══════════════════════════════════
+//  SETTINGS TAB
+// ═══════════════════════════════════
+function buildSettingsTab(){
+  const el=document.createElement('div');el.className='settings-page fade';
+  const pg=S.settingsPage,u=auth.currentUser;
+  function sRow(icon,label,rightHTML,onClick){
+    const row=document.createElement('button');row.style.cssText='display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;border-bottom:1px solid var(--brd);padding:16px 4px;cursor:pointer;color:var(--txt)';
+    row.innerHTML=`<div style="display:flex;align-items:center;gap:12px"><span style="font-size:20px;width:32px;text-align:center">${icon}</span><span style="font-size:13px">${label}</span></div><div style="display:flex;align-items:center;gap:8px">${rightHTML}<span style="font-size:14px;color:var(--muted)">›</span></div>`;
+    row.onclick=onClick;return row;
+  }
+  if(pg==='lang'){
+    el.innerHTML=`<div class="settings-header"><button class="settings-back" id="sB">←</button><div class="settings-title">${t('chooseLanguage')}</div></div>`;
+    const list=document.createElement('div');list.className='settings-list';
+    Object.entries(LANGS).forEach(([code,l])=>{
+      const opt=document.createElement('button');opt.className='settings-option'+(S.lang===code?' active':'');
+      opt.innerHTML=`<span class="settings-option-flag">${l.flag}</span><div class="settings-option-text"><div class="settings-option-name">${l.name}</div></div><span class="settings-option-check">✓</span>`;
+      opt.onclick=()=>{S.lang=code;persist();render();};list.appendChild(opt);
+    });
+    el.appendChild(list);setTimeout(()=>{el.querySelector('#sB').onclick=()=>{S.settingsPage=null;render();};},10);return el;
+  }
+  if(pg==='currency'){
+    el.innerHTML=`<div class="settings-header"><button class="settings-back" id="sB">←</button><div class="settings-title">${t('chooseCurrency')}</div></div>`;
+    const list=document.createElement('div');list.className='settings-list';
+    DISP_CURRENCIES.forEach(code=>{
+      const c=CURRENCIES[code];const opt=document.createElement('button');opt.className='settings-option'+(S.displayCurrency===code?' active':'');
+      opt.innerHTML=`<span class="settings-option-flag">${c.symbol}</span><div class="settings-option-text"><div class="settings-option-name">${c.name}</div><div class="settings-option-sub">${code}</div></div><span class="settings-option-check">✓</span>`;
+      opt.onclick=()=>{S.displayCurrency=code;persist();render();};list.appendChild(opt);
+    });
+    el.appendChild(list);setTimeout(()=>{el.querySelector('#sB').onclick=()=>{S.settingsPage=null;render();};},10);return el;
+  }
+  if(pg==='theme'){
+    el.innerHTML=`<div class="settings-header"><button class="settings-back" id="sB">←</button><div class="settings-title">${t('chooseTheme')}</div></div>`;
+    const list=document.createElement('div');list.className='settings-list';
+    [['dark','🌙','Dark',''],['light','☀️','Light',''],['auto','🔄','Auto','6:00–20:00 Light / 20:00–6:00 Dark']].forEach(([k,ic,nm,sub])=>{
+      const opt=document.createElement('button');opt.className='settings-option'+(S.theme===k?' active':'');
+      opt.innerHTML=`<span class="settings-option-flag">${ic}</span><div class="settings-option-text"><div class="settings-option-name">${nm}</div>${sub?'<div class="settings-option-sub">'+sub+'</div>':''}</div><span class="settings-option-check">✓</span>`;
+      opt.onclick=()=>{S.theme=k;applyTheme();persist();render();};list.appendChild(opt);
+    });
+    el.appendChild(list);setTimeout(()=>{el.querySelector('#sB').onclick=()=>{S.settingsPage=null;render();};},10);return el;
+  }
+  // Main settings page
+  el.innerHTML=`<div class="settings-header"><button class="settings-back" id="sMain">←</button><div class="settings-title">${t('settings')}</div></div>`;
+  setTimeout(()=>{
+    const backBtn=document.getElementById('sMain');
+    if(backBtn)backBtn.onclick=()=>{S.showSettings=false;S.settingsPage=null;render();};
+  },10);
+  const prefSec=document.createElement('div');prefSec.className='settings-group';prefSec.innerHTML='<div class="settings-group-label">Preferences</div>';
+  const prefBox=document.createElement('div');prefBox.style.cssText='background:var(--surf);border:1px solid var(--brd);border-radius:16px;padding:0 12px;overflow:hidden';
+  const lg=LANGS[S.lang],cur=CURRENCIES[S.displayCurrency]||CURRENCIES.EUR;
+  prefBox.appendChild(sRow('🌐',t('settingsLang'),`<span style="font-size:12px;color:var(--muted)">${lg.flag} ${lg.name}</span>`,()=>{S.settingsPage='lang';render();}));
+  prefBox.appendChild(sRow('💱',t('settingsCurrency'),`<span style="font-size:12px;color:var(--muted)">${cur.symbol} ${cur.name}</span>`,()=>{S.settingsPage='currency';render();}));
+  const thLabel=S.theme==='auto'?'🔄 Auto':S.theme==='light'?'☀️ Light':'🌙 Dark';
+  const tr=sRow('🎨',t('settingsTheme'),`<span style="font-size:12px;color:var(--muted)">${thLabel}</span>`,()=>{S.settingsPage='theme';render();});
+  tr.style.borderBottom='none';prefBox.appendChild(tr);
+  prefSec.appendChild(prefBox);el.appendChild(prefSec);
+  // Account section
+  const accSec=document.createElement('div');accSec.className='settings-group';accSec.innerHTML=`<div class="settings-group-label">${t('settingsAccount')}</div>`;
+  const accBox=document.createElement('div');accBox.style.cssText='background:var(--surf);border:1px solid var(--brd);border-radius:16px;padding:14px 16px';
+  if(u){
+    accBox.innerHTML=`<div style="font-size:13px;color:var(--txt);margin-bottom:8px">${t('loggedInAs')}: ${u.email}</div>`;
+    const lb=document.createElement('button');lb.className='btn-sec';lb.style.cssText='width:100%';lb.textContent=t('logout');
+    lb.onclick=()=>{auth.signOut();localStorage.removeItem('pi_skipped_auth');render();};accBox.appendChild(lb);
+  } else {
+    accBox.innerHTML=`<div style="font-size:12px;color:var(--muted);margin-bottom:10px">${t('skipLogin')}</div>`;
+    const lb=document.createElement('button');lb.className='btn-primary';lb.style.cssText='width:100%';lb.textContent=t('signIn');
+    lb.onclick=()=>{S.authScreen='login';render();};accBox.appendChild(lb);
+  }
+  accSec.appendChild(accBox);el.appendChild(accSec);
+  const pw=document.createElement('div');pw.className='powered';pw.textContent=t('powered');el.appendChild(pw);
+  return el;
+}
+
+// ═══════════════════════════════════
+//  AUTH SCREEN
+// ═══════════════════════════════════
+function buildAuthScreen(){
+  const el=document.createElement('div');el.className='auth-wrap';
+  const isLogin=S.authScreen==='login';
+  el.innerHTML=`<div class="auth-logo">💰</div><div class="auth-title">${t('appName')}</div><div class="auth-sub">${t('loginSubtitle')}</div>
+    <div class="auth-form">
+      ${S.authErr?`<div class="auth-err">${S.authErr}</div>`:''}
+      ${S.authSuccess?`<div class="auth-success">${S.authSuccess}</div>`:''}
+      <div class="auth-field"><label>${t('email')}</label><input id="aEmail" type="email" placeholder="you@example.com"></div>
+      <div class="auth-field"><label>${t('password')}</label><input id="aPass" type="password" placeholder="••••••"></div>
+      ${!isLogin?`<div class="auth-field"><label>${t('confirmPassword')}</label><input id="aPass2" type="password" placeholder="••••••"></div>`:''}
+      <button class="auth-btn" id="aSubmit">${isLogin?t('signIn'):t('signUp')}</button>
+      ${isLogin?`<div class="auth-forgot"><button id="aForgot">${t('forgotPassword')}</button></div>`:''}
+      <div class="auth-switch">${isLogin?t('noAccount'):t('haveAccount')} <button id="aToggle">${isLogin?t('signUp'):t('signIn')}</button></div>
+      <div class="auth-divider">or</div>
+      <button class="auth-skip" id="aSkip">${t('skipLogin')}</button>
+    </div>`;
+  setTimeout(()=>{
+    el.querySelector('#aToggle').onclick=()=>{S.authScreen=isLogin?'register':'login';S.authErr='';S.authSuccess='';render();};
+    el.querySelector('#aSkip').onclick=()=>{localStorage.setItem('pi_skipped_auth','1');S.authScreen='app';render();};
+    if(isLogin&&el.querySelector('#aForgot'))el.querySelector('#aForgot').onclick=async()=>{
+      const email=el.querySelector('#aEmail').value;if(!email){S.authErr='Enter email';render();return;}
+      try{await auth.sendPasswordResetEmail(email);S.authSuccess=t('resetSent');S.authErr='';render();}catch(e){S.authErr=e.message;render();}
+    };
+    el.querySelector('#aSubmit').onclick=async()=>{
+      const email=el.querySelector('#aEmail').value,pass=el.querySelector('#aPass').value;
+      if(!email||!pass){S.authErr='Fill in all fields';render();return;}
+      if(!isLogin){
+        const pass2=el.querySelector('#aPass2')?.value;
+        if(pass!==pass2){S.authErr=t('passwordMismatch');render();return;}
+        if(pass.length<6){S.authErr=t('passwordTooShort');render();return;}
+      }
+      S.authLoading=true;render();
+      try{
+        if(isLogin)await auth.signInWithEmailAndPassword(email,pass);
+        else await auth.createUserWithEmailAndPassword(email,pass);
+        S.authScreen='app';S.authErr='';
+      }catch(e){S.authErr=e.message;}
+      S.authLoading=false;render();
+    };
+  },10);
+  return el;
+}
+
+// ── START ──
+document.addEventListener('DOMContentLoaded',()=>{
+  applyTheme();
+  auth.onAuthStateChanged(user=>{
+    if(user){
+      S.authUser=user;
+      S.authScreen='app';
+      loadFromCloud().then(()=>{render();});
+    } else if(localStorage.getItem('pi_skipped_auth')){
+      S.authScreen='app';
+      render();
+    } else {
+      S.authScreen='login';
+      render();
+    }
+  });
+  fetchRates();
+  initAdMob();
+});
+</script>
+</body>
+</html>
