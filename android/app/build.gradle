@@ -7,8 +7,8 @@ android {
         applicationId "com.swart.passiveinkomen"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 15
-        versionName "1.15"
+        versionCode 16
+        versionName "1.16"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -43,6 +43,37 @@ dependencies {
 }
 
 apply from: 'capacitor.build.gradle'
+
+// Kopieer APK en AAB automatisch naar de projectroot/builds/ map na een release-build
+afterEvaluate {
+    def buildsDir = new File(rootProject.projectDir.parentFile, "builds")
+
+    tasks.named('assembleRelease').configure {
+        doLast {
+            buildsDir.mkdirs()
+            def vName = android.defaultConfig.versionName
+            def apk = new File(project.buildDir, "outputs/apk/release/app-release.apk")
+            if (apk.exists()) {
+                def dest = new File(buildsDir, "passief-inkomen-v${vName}.apk")
+                java.nio.file.Files.copy(apk.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                println "✓ APK gekopieerd naar: ${dest.absolutePath}"
+            }
+        }
+    }
+
+    tasks.named('bundleRelease').configure {
+        doLast {
+            buildsDir.mkdirs()
+            def vName = android.defaultConfig.versionName
+            def aab = new File(project.buildDir, "outputs/bundle/release/app-release.aab")
+            if (aab.exists()) {
+                def dest = new File(buildsDir, "passief-inkomen-v${vName}.aab")
+                java.nio.file.Files.copy(aab.toPath(), dest.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+                println "✓ AAB gekopieerd naar: ${dest.absolutePath}"
+            }
+        }
+    }
+}
 
 try {
     def servicesJSON = file('google-services.json')
