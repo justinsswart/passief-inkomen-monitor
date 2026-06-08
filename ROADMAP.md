@@ -1,6 +1,6 @@
 # Passief Inkomen App — Roadmap & To Do
 
-Laatste update: 2026-06-08
+Laatste update: 2026-06-08 (UI-herinrichting besluit verwerkt)
 
 ---
 
@@ -48,55 +48,132 @@ zodra bewezen is dat hij een volwaardige vervanging is.
 ---
 
 ## FASE 2 — Componenten en routing bouwen
-> Doel: de UI-structuur van de huidige app nabootsen in Svelte-componenten.
+> Doel: een **verbeterde** UI-structuur bouwen in Svelte — niet 1-op-1 nagebouwd,
+> maar heringedeeld op basis van wat de nieuwe architectuur mogelijk maakt.
 
-### Projectstructuur
+### Besluit: nieuwe tabindeling (4 tabs i.p.v. 5)
+
+| Tab | Oud | Nieuw |
+|---|---|---|
+| 📊 | Live | Live **+ Timers** (uitklapbaar onderaan) |
+| 💼 | Rekeningen | **Portfolio** (rekeningen + vermogen gecombineerd) |
+| 📈 | Vermogen | *(vervalt als aparte tab)* |
+| 📊 | Analyse | Analyse **met echte grafieken** (ApexCharts) |
+| ⚙️ | *(geen)* | **Instellingen** (nieuw — taal, valuta, thema, account) |
+| ⏱ | Timers | *(vervalt als aparte tab → gaat in Live-scherm)* |
+
+**Rationale:**
+- Timers zijn contextgebonden aan de live-teller → horen bij hetzelfde scherm
+- Rekeningen en Vermogen zijn beide "bezittingen" → één Portfolio-scherm is logischer
+- Analyse verdient echte interactieve grafieken nu dat mogelijk is via npm-pakketten
+- Instellingen waren nergens goed vindbaar → verdienen een eigen tab
+- De vrijgekomen tab (Fase 6) → wordt "Bank" wanneer GoCardless is geïntegreerd
+
+### Projectstructuur (definitief)
 ```
 src/
   lib/
     components/
-      Header.svelte
-      TabBar.svelte
-      AccountCard.svelte
-      AssetCard.svelte
-      TimerCard.svelte
-      LiveCard.svelte
-      Modal.svelte
+      Header.svelte         (totaalbedrag + chips)
+      TabBar.svelte         (4 tabs)
+      AccountCard.svelte    (rekening-kaart, gebruikt in Portfolio)
+      AssetCard.svelte      (vermogen-kaart, gebruikt in Portfolio)
+      TimerCard.svelte      (timer-kaart, gebruikt in Live)
+      Modal.svelte          (gedeelde modal-shell)
+      DonutChart.svelte     (SVG-donut voor Portfolio en Analyse)
     screens/
-      ScreenLive.svelte
-      ScreenTimers.svelte
-      ScreenAccounts.svelte
-      ScreenAssets.svelte
-      ScreenAnalytics.svelte
+      ScreenLive.svelte     (live teller + uitklapbare timers)
+      ScreenPortfolio.svelte(rekeningen + vermogen, segment-control + donut)
+      ScreenAnalytics.svelte(ApexCharts: lijn, bar, donut, doel)
+      ScreenSettings.svelte (taal, valuta, thema, notificaties, account)
+      AuthScreen.svelte     (login / register / reset)
     stores/
-      app.js          (globale state: accounts, assets, settings)
-      auth.js         (Firebase auth state)
-    firebase.js       (Firebase initialisatie)
-    i18n.js           (vertalingen)
-    utils.js          (fmtD, berekeningen)
-  App.svelte          (root: routing + tabbar)
+      app.js                (accounts, assets, timers, history-snapshots)
+      auth.js               (Firebase auth state)
+    firebase.js
+    i18n.js
+    utils.js
+    constants.js
+  App.svelte
   main.js
 ```
 
+### Extra: datamodel-uitbreiding voor grafieken
+De Analyse-tab heeft tijdreeksdata nodig (inkomen door de tijd).
+Dit vereist een kleine toevoeging aan het datamodel:
+
+```js
+// In Firestore: users/{uid}
+history: [
+  { date: '2026-06-08', totalYrInc: 4200, netWorth: 82000 },
+  // max 365 entries, oudste wordt overschreven
+]
+```
+
+Strategie: bij elke app-open controleren of de laatste snapshot ouder is dan 24u.
+Zo ja → huidige waarden wegschrijven. Geen extra user-actie nodig.
+
+### Chart-bibliotheek: ApexCharts
+- `npm install apexcharts` (puur JS, geen React-dependency)
+- Uitstekende mobiele touch-support (pinch, swipe)
+- Theming via CSS-variabelen mogelijk
+- Bundlegrootte (~450 KB) is acceptabel voor een Capacitor-app (zit in de APK)
+- Benodigde charts:
+  - **Lijn**: inkomen per maand over tijd (uit history-snapshots)
+  - **Donut**: vermogensverdeling rekeningen vs. assets vs. categorieën
+  - **Bar (horizontaal)**: inkomen per bron (vervangt huidige CSS-bars)
+  - **Radial gauge**: doel-voortgang (vervangt huidige progress-bar)
+
 ### To do per onderdeel
-- [ ] `firebase.js` — Firebase initialiseren met bestaande config
-- [ ] `stores/auth.js` — inlogstatus bijhouden, Firestore sync
-- [ ] `stores/app.js` — accounts, assets, settings, persist naar Firestore
-- [ ] `i18n.js` — bestaande vertalingen overzetten (NL/EN/DE/FR/ES)
-- [ ] `utils.js` — `fmtD()`, `accYrInc()`, `assetYrInc()`, `toDisp()` overzetten
-- [ ] `App.svelte` — tab-navigatie, actief scherm wisselen
-- [ ] `Header.svelte` — totaalbedrag, chips, taalswitch
-- [ ] `TabBar.svelte` — vijf tabs met iconen
-- [ ] `ScreenLive.svelte` — live teller, per-seconde update
-- [ ] `ScreenTimers.svelte` — timers aanmaken en bijhouden
-- [ ] `ScreenAccounts.svelte` — rekeningen accordeon
-- [ ] `ScreenAssets.svelte` — vermogen cards
-- [ ] `ScreenAnalytics.svelte` — grafieken, doelen, projectie
-- [ ] Login / Register scherm
+
+**Foundation (al gedaan ✅)**
+- [x] `firebase.js` — Firebase v9 modular SDK
+- [x] `stores/auth.js` — login/logout/register
+- [x] `stores/app.js` — accounts, assets, timers, persist, syncToCloud
+- [x] `i18n.js` — NL/EN/DE/FR/ES vertalingen
+- [x] `utils.js` — alle rekenfuncties overgezet
+- [x] `constants.js` — CURRENCIES, ASSET_CATS, THEMES
+- [x] `App.svelte` — tab-routing + auth check
+- [x] `Header.svelte` — totaalbedrag + chips
+- [x] `TabBar.svelte` — tabs met actieve state
+- [x] `AuthScreen.svelte` — login/register/reset
+
+**Live-scherm (timers geïntegreerd)**
+- [ ] `ScreenLive.svelte` uitbreiden — uitklapbaar timers-blok onderaan
+- [ ] `TimerCard.svelte` — herbruikbaar timer-component
+- [ ] Svelte `slide`-transitie voor uitklappen/inklappen
+
+**Portfolio-scherm (rekeningen + vermogen)**
+- [ ] `ScreenPortfolio.svelte` — segment-control "Rekeningen" / "Vermogen"
+- [ ] `AccountCard.svelte` — rekening-kaart met accordeon + mutatie-support
+- [ ] `AssetCard.svelte` — asset-kaart met portfolio-posities support
+- [ ] `DonutChart.svelte` — SVG-donut voor vermogensverdeling bovenaan
+- [ ] Mutaties toevoegen/bewerken volledig werkend
+- [ ] Portfolio-posities (aandelen) toevoegen/bewerken
+
+**Analyse-scherm (echte grafieken)**
+- [ ] `npm install apexcharts`
+- [ ] History-snapshot systeem bouwen in `stores/app.js`
+- [ ] `ScreenAnalytics.svelte` herbouwen met ApexCharts
+  - [ ] Lijndiagram: jaarinkomen over tijd
+  - [ ] Donutdiagram: verdeling per bron
+  - [ ] Horizontale staafgrafiek: top-inkomstenbronnen
+  - [ ] Radiale gauge: doel-voortgang
+  - [ ] Mijlpalen-overzicht
+
+**Instellingen-scherm**
+- [ ] `ScreenSettings.svelte` — taal, valuta, thema-kiezer
+- [ ] Notificatie-instellingen (frequentie, aan/uit)
+- [ ] Account-info + uitloggen
+- [ ] Exporteren (JSON backup van alle data)
+
+**Overig**
 - [ ] AdMob integreren (reward ad + banner)
 - [ ] Widget data plugin intact houden (Java-kant blijft ongewijzigd)
+- [ ] Lokale notificaties via `@capacitor/local-notifications`
 
-**Gereed wanneer:** alle schermen werken in de browser en data wordt correct opgeslagen in Firestore.
+**Gereed wanneer:** alle 4 tabs werken in de browser, grafieken tonen data,
+instellingen worden opgeslagen, en Firestore-sync is bevestigd.
 
 ---
 
@@ -161,14 +238,45 @@ src/
 
 ## FASE 7 — Portfolio-integratie
 > Doel: automatische portfolio-updates vanuit broker of tracking-app.
+> Prioriteit op Getquin omdat die al dividenddata bijhoudt per positie.
 
-**Opties:**
-- [ ] **DEGIRO**: CSV export importeren (makkelijkst om mee te beginnen)
-- [ ] **Trade Republic**: PDF/CSV export
-- [ ] **Getquin**: geen officiële API — alternatief is directe brokerkoppeling
+### Getquin — onderzoek (2026-06-08)
+
+**Wat Getquin biedt dat relevant is:**
+- Dividendoverzicht per aandeel (bedrag, ex-datum, betaaldatum)
+- Portfolio-posities (ticker, aantal, aankoopprijs)
+- Performance per positie
+
+**Koppelingsopties:**
+
+| Optie | Haalbaarheid | Aanpak |
+|---|---|---|
+| Officiële API | ❌ Geen publieke API | n.v.t. |
+| CSV-export | ✅ Getquin heeft export-functie | Importeer in app via bestandskiezer |
+| Web scraping | ⚠️ Mogelijk, maar breekt bij UI-wijzigingen | Cloud Function die inlogt als gebruiker — **risicovol** |
+| Broker-koppeling | ✅ Beter alternatief | DEGIRO/TR API rechtstreeks (dezelfde data als Getquin, maar stabieler) |
+
+**Aanbevolen aanpak voor Getquin:**
+1. **CSV-import** als eerste stap — Getquin laat transacties/dividenden exporteren als CSV.
+   De app leest dit in via `@capacitor/filesystem` + een bestandskiezer.
+   Posities en dividenden worden ingelezen en omgezet naar het app-datamodel.
+2. **Geen scraping** — te fragiel en in strijd met Getquin's gebruiksvoorwaarden.
+3. **Toekomst**: als Getquin ooit een API openstelt, is de Cloud Function klaar om die te gebruiken.
+
+**CSV-import flow (te bouwen in Fase 7):**
+```
+Getquin → Export CSV → Gebruiker kiest bestand in app
+→ Cloud Function of frontend parseert CSV
+→ Posities worden toegevoegd aan bestaande assets (category: 'stocks')
+→ Dividenden worden toegevoegd als mutaties
+```
+
+**Overige brokers:**
+- [ ] **DEGIRO**: CSV export importeren (transactie-overzicht + dividendhistorie)
+- [ ] **Trade Republic**: PDF/CSV export (minder gestructureerd)
 - [ ] **Scalable Capital**: onderzoeken of API beschikbaar is
 
-Aanpak: eerst handmatige CSV-import bouwen, daarna automatische sync als de broker een API biedt.
+Aanpak: eerst CSV-import voor Getquin + DEGIRO, daarna automatische sync als een broker een API biedt.
 
 ---
 
@@ -176,11 +284,12 @@ Aanpak: eerst handmatige CSV-import bouwen, daarna automatische sync als de brok
 
 | Fase | Start na | Go/No-go criterium |
 |---|---|---|
-| Fase 0 | Nu | build.gradle gecorrigeerd |
-| Fase 1 | Na Fase 0 | Play Store versie 1.16 live |
-| Fase 2 | Na Fase 1 | Svelte basis draait op emulator |
-| Fase 3 | Na Fase 2 | Alle schermen gebouwd |
-| Fase 4 | Na Fase 3 | Geen regressies gevonden |
+| Fase 0 | Nu | build.gradle gecorrigeerd ✅ |
+| Fase 1 | Na Fase 0 | Play Store versie 1.16 live ✅ |
+| Fase 2 | Na Fase 1 | Svelte basis draait op emulator ✅ (foundation klaar) |
+| Fase 3 | Na Fase 2 | Alle 4 tabs + grafieken werken in browser |
+| Fase 4 | Na Fase 3 | Geen regressies gevonden t.o.v. v1 |
 | Fase 5 | Na Fase 4 | Nieuwe app live in Play Store |
 | Fase 6 | Na Fase 5 | Cloud Functions operationeel |
 | Fase 7 | Na Fase 6 | Bank-sync werkt stabiel |
+| Fase 7b | Parallel aan Fase 7 | Getquin CSV-import werkt |
